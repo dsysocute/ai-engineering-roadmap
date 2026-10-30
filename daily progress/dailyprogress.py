@@ -50,12 +50,12 @@ def parse_raw(raw_text):
 def collect_batch():
     print("📥 批量模式：把所有内容一次性粘贴进来")
     print("   格式：### 字段名 换行 内容")
-    print("   结束：粘贴完后输入 END 回车")
+    print("   结束：粘贴完直接敲一次回车（空行结束）")
     print()
     lines = []
     while True:
         line = input()
-        if line.strip() == "END":
+        if line.strip() == "":
             break
         lines.append(line)
     return parse_raw("\n".join(lines))
