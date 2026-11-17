@@ -15,12 +15,12 @@ if not values:
 def check_values(values,threshold):
     if not values:
         print(f"列表为空，无法进行函数计算")
-        return 0,0,0
+        return 0,0,0.0
     try:
         threshold=float(threshold)
     except ValueError:
         print(f"阈值非数，无法计算")
-        return 0,0,0
+        return 0,0,0.0
     over_threshold_total=0
     for val in values:
         if val>threshold:

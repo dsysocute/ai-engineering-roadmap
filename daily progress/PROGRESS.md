@@ -4,7 +4,7 @@
 
 ### Today
 
-- 日期：2026-10-29
+- 日期：2026-10-28
 - 完成的功能：搭建项目总目录，创建python-practice；编写hello.py、day01.py练习；初始化Git仓库；学会终端切换目录运行py文件
 - 新学会的概念：py源码、解释器、终端的区别；str/int类型差异；input返回字符串；CMD cd /d跨盘语法；Git仓库基础
 - 新增或修改的文件：python-practice/hello.py、python-practice/day01.py、PROGRESS.md
@@ -28,9 +28,12 @@
 
 
 ---
+
 ## Daily Progress
+
 ### Today
-- 日期：2026-10-30
+
+- 日期：2026-10-29
 - 完成的功能：完成Python基础控制流与数据结构实战练习；编写day02.py实现基础数值统计；开发quality_check_v0.py数据质量校验函数；完成3组边界测试用例自测，实现空列表、非法阈值异常捕获，统一返回值数据类型。
 - 新学会的概念：掌握if/elif/else分支逻辑；分清for循环与while循环适用场景；理清列表、字典、元组、集合的存储区别；掌握列表与字典增删改查操作；理解循环边界条件与无限循环成因；学会函数返回多值、空数据与非法参数的容错处理。
 - 新增或修改的文件：day02.py、quality_check_v0.py
@@ -39,12 +42,66 @@
 - Git commit：quality_check_v0：完成check_values函数，增加空列表、非法阈值边界校验，统一返回值类型
 
 ### Problems
+
 - 遇到的问题：一开始错误返回整数0，和正常分支的浮点比例类型不一致；最开始只做了空列表判断，没有对阈值做类型转换异常捕获；最开始函数只return元组，没有提前打印文字提示。
 - 如何定位：对比正常分支与异常分支的返回值类型；单独传入字符串阈值触发报错；逐行调试函数分支执行逻辑。
 - 最终如何修复：把异常返回值修改为0,0,0.0保证类型统一；增加try-except捕获阈值转浮点异常；在分支内提前打印文字提示，再返回默认值。
 - 哪些问题仍未解决：暂无遗留问题，当前版本满足纯基础语法实现，未引入pandas与第三方库。
 
 ### Tomorrow
+
 - 明天必须交付的功能：练习多层嵌套循环、字典嵌套；完善异常捕获逻辑；练习函数传参、局部变量与全局变量；完成下一轮数据统计类练习题。
 - 验收标准：能够独立编写条件分支、循环代码；清晰区分列表与字典的使用场景；能够主动处理空列表、不存在字典键等异常；函数使用return返回结果，不只用print打印内容。
 - 需要复习的概念：循环边界控制、for/while场景区分、列表与字典增删改查、函数多返回值、基础异常处理try-except。
+
+---
+
+## Daily Progress
+
+### Today
+
+- 日期：2026-10-30
+- 完成的功能：将第2天代码拆分为 count_values()、calculate_ratio()、validate_input()、main() 四个函数，增加参数校验，处理除零问题；创建dataops-copilot目录，搭建虚拟环境，完成venv创建、PowerShell激活、pip安装依赖、导出依赖清单；新建app/services/quality_checker.py，把质量检查函数抽成可导入模块；完成Harness评审，核对函数拆分合理性并说明修改理由；配置SSH，成功将代码推送到GitHub仓库。
+- 新学会的概念：单一职责函数拆分、参数校验与try/except异常捕获、除零防护、Python虚拟环境隔离依赖、项目服务层模块化、跨文件导入、Git SSH代理与端口排障、区分导入错误和业务异常。
+- 新增或修改的文件：day02_quality_check.py、dataops-copilot/app/services/quality_checker.py、dataops-copilot/requirements.txt、.ssh/config
+- 测试命令：python -m venv .venv
+  .venv\Scripts\Activate.ps1
+  pip freeze > requirements.txt
+  python -c "from app.services.quality_checker import calculate_ratio"
+  ssh -T git@github.com
+  git push
+- 测试结果：函数参数校验生效，除零场景可以捕获；虚拟环境创建激活正常，依赖清单生成成功；跨文件导入函数正常；SSH认证成功，代码推送至GitHub，能区分导入报错和业务计算报错，全部验收项通过。
+- Git commit：feat: day02 函数拆分模块化 + 虚拟环境搭建 + ssh推送github
+
+### Problems
+
+- 遇到的问题：CMD下connect命令找不到；github默认22端口被拦截连接断开；Git Bash和CMD路径语法不一样；ssh config文件后缀错误导致配置不生效。
+- 如何定位：根据报错信息判断connect仅Git Bash内置；Connection closed 判定22端口封禁；cd命令报错是终端路径语法差异；查看文件后缀发现config变成config.txt。
+- 最终如何修复：改用Git Bash执行git/ssh操作；ssh配置改为ssh.github.com:443；删除config多余txt后缀；Git Bash使用/d/路径写法；代码增加前置参数校验+异常捕获双重防护。
+- 哪些问题仍未解决：无
+
+### Tomorrow
+
+- 明天必须交付的功能：给quality_checker模块编写unittest单元测试；使用argparse做命令行参数入口；编写项目README，记录环境搭建与运行步骤。
+- 验收标准：代码拆分为指定4个函数，带参数校验，防止除零；可以外部导入模块函数；熟练完成虚拟环境全套操作；能区分导入异常和业务逻辑异常；交付基础目录、虚拟环境、可导入质量检查模块。
+- 需要复习的概念：函数单一职责、精准异常捕获、Python包导入机制、虚拟环境、Git SSH配置
+
+---
+
+## Daily Progress
+
+### Today
+
+- 日期：2026-11-17
+- 断更说明：10-31 → 11-17 期间为期中考试备考与考试占用，同时在调整实习方向、梳理老平台项目与目标岗位要求，代码练习暂停，进度记录断更。11-17 重新接上，按实习准备清单恢复节奏。
+- 完成的功能：在 algoarena-ai-service 下创建 Python 虚拟环境，安装 fastapi、uvicorn[standard]、pytest、httpx 四个依赖并验证可导入，生成 requirements.txt；补全 .gitignore 忽略规则。
+- 新学会的概念：虚拟环境依赖隔离、第三方依赖与传递依赖、requirements.txt 依赖复现、pip 临时目录清理。
+- 新增或修改的文件：algoarena-ai-service/.venv（不进 Git）、algoarena-ai-service/requirements.txt、.gitignore
+- 测试命令：python -c "import fastapi, uvicorn, pytest, httpx; print('ok')"
+- 测试结果：四个依赖导入成功，打印 ok。
+
+### Tomorrow / 排期
+
+- M0（11/17–11/19）：完成 .gitignore、Git 分主题提交并 push、补本进度记录。
+- M1（11/20–11/30）：搭建 app 目录骨架，写最小 /api/health、/api/analyze 接口，Pydantic 入参校验，pytest 用例，SQL 基础练习。
+- 验收标准：每个阶段做完能脱稿讲清链路，代码本人手写；没跑通、没理解的内容不写进简历。
