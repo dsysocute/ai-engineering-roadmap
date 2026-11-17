@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台 · 排序算法测评平台</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: #f3f5f7; }
+  .admin-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .admin-head { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .admin-head h1 { margin: 0; font-size: 20px; color: #12324d; }
+  .admin-head .meta { font-size: 12px; color: #6b7a88; }
+  .admin-head .spacer { margin-left: auto; }
+  .admin-login { width: 340px; margin: 12vh auto 0; padding: 28px; background: #fff;
+    border-radius: 10px; box-shadow: 0 14px 36px rgba(0,0,0,.14); }
+  .admin-login h1 { margin: 0 0 18px; font-size: 18px; color: #12324d; text-align: center; }
+  .admin-login input { width: 100%; padding: 10px 12px; border: 1px solid #d5dbe3;
+    border-radius: 6px; font-size: 14px; outline: none; box-sizing: border-box; }
+  .admin-login input:focus { border-color: #2f7ea8; box-shadow: 0 0 0 3px rgba(47,126,168,.14); }
+  .admin-login .msg { margin: 10px 0 0; min-height: 18px; font-size: 12px; color: #c0392b; text-align: center; }
+  .panel { background: #fff; border: 1px solid #e3e8ee; border-radius: 8px; overflow: hidden; }
+  .panel table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .panel th, .panel td { padding: 9px 12px; border-bottom: 1px solid #eef1f5; text-align: left; white-space: nowrap; }
+  .panel th { background: #12324d; color: #fff; font-weight: 600; position: sticky; top: 0; }
+  .panel tr:nth-child(even) td { background: #f8fafb; }
+  .panel td.num { text-align: right; font-family: Consolas, monospace; }
+  .panel td.detail { white-space: normal; color: #6b7a88; font-size: 12px; max-width: 320px; }
+  .tag-ok { color: #1c7a68; }
+  .tag-bad { color: #b5462f; }
+  .tag-pending { color:#cc8800; }
+  .empty { padding: 36px; text-align: center; color: #8a94a3; font-size: 13px; }
+  .export { font-size: 12px; color: #6b7a88; margin-top: 12px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div id="loginView" class="admin-login">
+  <h1>后台 · 看榜</h1>
+  <input id="adminPass" type="password" placeholder="管理口令">
+  <p class="msg" id="adminMsg"></p>
+  <button id="adminLoginBtn" class="btn primary block">进入</button>
+  <p class="tip" style="margin-top:14px;font-size:12px;color:#8a94a3;text-align:center;line-height:1.6">
+    本页仅限教师使用，口令由启动脚本中的 ADMIN_PASS 控制
+  </p>
+</div>
+
+<div id="panelView" class="admin-wrap hidden">
+  <div class="admin-head">
+    <h1>成绩排行</h1>
+    <span class="meta" id="adminMeta"></span>
+    <span class="spacer"></span>
+    <button id="refreshBtn" class="btn">刷新</button>
+  </div>
+
+  <div class="panel">
+    <div id="panelBody" class="empty">加载中…</div>
+  </div>
+
+  <div class="export">
+    成绩同时写在 <b>data/results.tsv</b> 和 <b>data/results.csv</b>，Excel 直接打开即可。<br>
+    每交一份卷就自动落盘，服务重启不会丢。效率标记【测算中】代表后台还在跑大规模用例，请稍后刷新。
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let adminToken = '';
+
+async function doLogin() {
+  const password = $('adminPass').value.trim();
+  if (!password) return;
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams({ password }).toString()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $('adminMsg').textContent = data.error || '口令不对';
+      return;
+    }
+    adminToken = data.token;
+    sessionStorage.setItem('admin_token', adminToken);
+    showPanel();
+  } catch (e) {
+    $('adminMsg').textContent = '连不上后端';
+  }
+}
+
+async function load() {
+  const res = await fetch('/api/admin/results', {
+    headers: { 'X-Token': adminToken }
+  });
+  if (res.status === 401) {
+    sessionStorage.removeItem('admin_token');
+    location.reload();
+    return;
+  }
+  const data = await res.json();
+  $('adminMeta').textContent = '已交卷 ' + data.total + ' 人 / 共 ' + data.users + ' 个账号';
+
+  if (!data.results.length) {
+    $('panelBody').className = 'empty';
+    $('panelBody').textContent = '还没有人交卷。';
+    return;
+  }
+
+  let html = '<table><tr>'
+    + '<th>名次</th><th>选手号</th><th>账号</th><th>总分</th><th>正确</th>'
+    + '<th>编码用时</th><th>效率分</th><th>效率状态</th><th>用例</th><th>交卷时间</th><th>明细</th>'
+    + '</tr>';
+  data.results.forEach((r, i) => {
+    let effStateText = r.efficiencyReady ? '已完成' : '测算中';
+    let effStateClass = r.efficiencyReady ? 'tag-ok' : 'tag-pending';
+    html += '<tr>'
+      + '<td class="num">' + (i + 1) + '</td>'
+      + '<td class="num">' + String(r.no).padStart(2, '0') + '</td>'
+      + '<td>' + r.username + '</td>'
+      + '<td class="num"><b>' + Number(r.score).toFixed(1) + '</b></td>'
+      + '<td class="' + (r.correct ? 'tag-ok' : 'tag-bad') + '">' + (r.correct ? '通过' : '未通过') + '</td>'
+      + '<td class="num">' + Number(r.codingMinutes).toFixed(0) + ' min</td>'
+      + '<td class="num">' + r.efficiencyScore + ' / 20</td>'
+      + '<td class="' + effStateClass + '">' + effStateText + '</td>'
+      + '<td class="num">' + r.caseOk + ' / ' + r.caseTotal + '</td>'
+      + '<td>' + (r.finishedAt || '') + '</td>'
+      + '<td class="detail">' + (r.detail || '') + '</td>'
+      + '</tr>';
+  });
+  html += '</table>';
+  $('panelBody').className = '';
+  $('panelBody').innerHTML = html;
+}
+
+function showPanel() {
+  $('loginView').classList.add('hidden');
+  $('panelView').classList.remove('hidden');
+  load();
+}
+
+$('adminLoginBtn').onclick = doLogin;
+$('adminPass').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin();
+});
+$('refreshBtn').onclick = load;
+
+const saved = sessionStorage.getItem('admin_token');
+if (saved) {
+  adminToken = saved;
+  showPanel();
+}
+</script>
+</body>
+</html>

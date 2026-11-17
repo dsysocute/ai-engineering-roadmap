@@ -5,3 +5,8 @@ __pycache__/
 *.log
 *.lnk
 venv/
+.pytest_cache/
+*.idea/
+~$*.docx
+sort_platform/data*/
+sort_platform-acl-report/

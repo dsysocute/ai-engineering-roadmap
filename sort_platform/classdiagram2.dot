@@ -1,0 +1,43 @@
+digraph UML {
+  rankdir=BT;
+  bgcolor="white";
+  node [shape=record, fontname="Helvetica", fontsize=10, penwidth=1.1];
+  edge [fontname="Helvetica", fontsize=8.5, color="#333333"];
+
+  // ===== 参赛者侧 =====
+  SortStrategy [label="{\<\<interface\>\>\lSortStrategy\l|\l+ sort(arr: int[]): void\l}"];
+  Solution     [label="{Solution（选手提交）\l|\l+ sort(arr: int[]): void\l}", style=dashed];
+
+  // ===== 入口层 =====
+  Main [label="{Main\l|\l+ main(args: String[]): void\l- handleLogin(...)\l- handleStart(...)\l- handleTest(...)\l- handleFinish(...)\l- handleLeaderboard(...)\l- handleAdmin(...)\l}"];
+
+  // ===== 业务层 =====
+  JudgeEngine [label="{JudgeEngine\l|\l- slots: Semaphore\l+ testRun(user, code): Outcome\l+ judge(user, minutes, code): ResultRecord\l- staticScan(code): String\l}"];
+  Store       [label="{Store\l|- users: Map\l- results: Map\l+ checkLogin(u, p): User\l+ setStatus(...)\l+ saveResult(...)\l+ leaderboard(): List\l- load() / persist()\l}"];
+  ScoreCalculator [label="{ScoreCalculator\l|\l+ codingScore(min): int\l+ efficiencyScore(ratio): int\l+ total(...): double\l}"];
+
+  // ===== 判题执行层 =====
+  CompileService [label="{CompileService\l|\l+ compile(code, dir): Result\l- platformClasses(): String\l}"];
+  JudgeRunner    [label="{JudgeRunner\l|\l+ main(args: String[])\l- measureOne(...): long\l- genData(...): int[]\l}"];
+  Checker        [label="{Checker\l|\l+ isSorted(arr): boolean\l+ isCorrect(base, data): boolean\l+ describe(...): String\l}"];
+  MergeSortRef   [label="{MergeSortRef\l|\l+ sort(arr: int[]): void\l}"];
+  Json           [label="{Json\l|\l+ esc / str / num / inum / bool\l}", style=dotted];
+
+  // ===== 关系 =====
+  MergeSortRef -> SortStrategy [arrowhead=empty, style=dashed, label="实现"];
+  Solution     -> SortStrategy [arrowhead=empty, style=dashed, label="实现"];
+
+  Main -> JudgeEngine     [arrowhead=open, style=dashed, label="调用"];
+  Main -> Store           [arrowhead=open, style=dashed, label="读写"];
+  Main -> Json            [arrowhead=open, style=dotted, label="输出"];
+
+  JudgeEngine -> CompileService  [arrowhead=open, style=dashed, label="调 javac"];
+  JudgeEngine -> JudgeRunner     [arrowhead=open, style=dashed, label="起子进程"];
+  JudgeEngine -> ScoreCalculator [arrowhead=open, style=dashed, label="算分"];
+  JudgeEngine -> Store           [arrowhead=open, style=dashed, label="落库"];
+  JudgeEngine -> Checker         [arrowhead=open, style=dotted, label="校验"];
+
+  JudgeRunner -> MergeSortRef [arrowhead=open, style=dashed, label="同机基准"];
+  JudgeRunner -> Checker      [arrowhead=open, style=dashed, label="校验"];
+  JudgeRunner -> Solution     [arrowhead=open, style=dashed, label="反射加载"];
+}

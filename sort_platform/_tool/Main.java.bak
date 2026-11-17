@@ -1,0 +1,2727 @@
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
+
+import java.io.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 后端入口：登录、开始计时、测试运行、交卷判题、后台效率评测、排行榜。
+ *
+ * 交卷分两段：/api/finish 只跑正确性，立刻返回；
+ * 正确性通过后由前端再调 /api/judge-efficiency，10 万规模的效率测试在后台线程池跑完回填。
+ */
+public class Main {
+
+    private static final int PORT = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+    private static final long TEST_COOLDOWN_MS = 1000L;
+
+    private static final String ADMIN_PASS = System.getenv().getOrDefault("ADMIN_PASS", "sort2026#admin");
+    private static final int ADMIN_MAX_FAILS = 8;
+    private static final long ADMIN_LOCK_MS = 60_000L;
+    private static final AtomicInteger adminFails = new AtomicInteger(0);
+    private static volatile long adminLockUntil = 0L;
+
+    static Store store;
+    static final Map<String, Session> sessions = new ConcurrentHashMap<>();
+    static final Set<String> adminTokens = ConcurrentHashMap.newKeySet();
+    /** 管理员 token → 是谁登的（master = 主口令，其余是被授予权限的学号） */
+    static final Map<String, String> adminTokenUsers = new ConcurrentHashMap<>();
+
+    /** 账号 → 当前唯一有效的 token，用来做「同账号顶号」 */
+    private static final Map<String, String> activeToken = new ConcurrentHashMap<>();
+    /** 被顶掉/失效的 token → 失效时刻，让前端能分清「被顶号」和「普通过期」 */
+    private static final Map<String, Long> killedTokens = new ConcurrentHashMap<>();
+    /** 账号 → 第一次点「开始」的时刻。放在会话外面，重登、被顶都不会重置计时 */
+    private static final Map<String, Long> startTimes = new ConcurrentHashMap<>();
+    /** 正在判卷的账号，防止同一个人连点两次交卷 */
+    private static final Set<String> finishingAccounts = ConcurrentHashMap.newKeySet();
+    private static final long KILLED_TOKEN_TTL_MS = 10 * 60 * 1000L;
+    private static volatile long lastKilledClean = 0L;
+
+    /** 讨论区限流：账号 → 上一次发言时刻，防止刷屏 */
+    private static final Map<String, Long> lastCommentAt = new ConcurrentHashMap<>();
+    private static final long COMMENT_COOLDOWN_MS = 4000L;
+    private static final int COMMENT_MAX_LEN = 120;
+
+    /** 在线判定：账号 → 最后一次带着有效令牌请求的时刻（页面轮询会持续刷新） */
+    private static final Map<String, Long> lastSeen = new ConcurrentHashMap<>();
+    private static final long ONLINE_WINDOW_MS = 60_000L;
+
+    /** 观赛用的实时代码：选手端每 3 秒上报一次，只在内存里留最近十几版 */
+    private static final Map<String, List<CodeSnap>> liveCodes = new ConcurrentHashMap<>();
+    private static final int LIVE_CODE_KEEP = 14;
+    /** 观赛端实时取代码：直接给最新一版（公平性由弹幕防提示拦截保障） */
+    private static final int LIVE_CODE_MAX_CHARS = 60000;
+
+    /** 一版代码快照：内容 + 收到时刻 */
+    private static final class CodeSnap {
+        final String code;
+        final long at;
+
+        CodeSnap(String code, long at) {
+            this.code = code;
+            this.at = at;
+        }
+    }
+
+    /**
+     * 赛中防提示词表：比赛进行中，弹幕里出现这些内容就是在给选手递思路。
+     * 只拒发、不计违规；赛后的正常讨论不受影响。
+     */
+    private static final String[] PROMPT_BLOCK = {
+        // 算法与数据结构名
+        "快排", "快速排序", "归并", "堆排", "堆排序", "冒泡", "插入排序", "选择排序",
+        "桶排", "基数排序", "计数排序", "希尔", "递归", "分治", "双指针", "三路",
+        "哨兵", "基准值", "pivot", "partition", "arrays", "collections", "timsort",
+        "复杂度", "logn", "nlogn",
+        // 明确的写法指导 / 纠错
+        "改成", "换成", "应该用", "试试这", "建议用", "建议你", "写错", "错在", "漏了",
+        "少了个", "加个", "删掉", "你这里", "第几行", "行号", "越界", "边界条件",
+        "空指针", "编译错", "会超时", "超时了", "过不了", "通过不了",
+    };
+
+    /** 违规词表：辱骂、侮辱与违规聚集类，命中即计违规并禁言 */
+    private static final String[] ABUSE_BLOCK = {
+        "垃圾", "废物", "太菜", "真菜", "滚吧", "滚开", "闭嘴", "别写了", "放弃吧",
+        "退赛", "作弊", "抄一下", "关机", "断网",
+        "傻逼", "傻b", "煞笔", "智障", "脑残", "去死", "狗东西", "贱人", "婊子",
+        "尼玛", "cnm", "nmsl", "fuck", "shit", "bitch", "妈的", "逼",
+        "法轮", "台独", "藏独", "疆独", "港独", "分裂国家", "游行示威",
+    };
+
+    /** 去空白、转小写后做包含匹配 */
+    private static String hitWord(String[] words, String text) {
+        String s = text.replaceAll("[ \\t\\u3000]", "").toLowerCase();
+        for (String w : words) {
+            if (s.contains(w)) {
+                return w;
+            }
+        }
+        return null;
+    }
+
+    private static String promptBlockedWord(String text) {
+        return hitWord(PROMPT_BLOCK, text);
+    }
+
+    private static String abuseBlockedWord(String text) {
+        return hitWord(ABUSE_BLOCK, text);
+    }
+
+    // ---------------- 赛事状态 ----------------
+
+    /** 赛事全局状态键：idle 未开始 / countdown 倒计时 / running 进行中 / finished 已结束 */
+    private static final String K_CONTEST_STATUS = "contest.status";
+    private static final String K_CONTEST_COUNTDOWN_END = "contest.countdownEnd";
+    private static final String K_CONTEST_START_AT = "contest.startAt";
+    private static final String K_CONTEST_END_AT = "contest.endAt";
+    /** 裁判口令：只负责开赛与强制结束，与后台管理员是两套身份 */
+    private static final String JUDGE_PASS = System.getenv().getOrDefault("JUDGE_PASS", "abc2511298");
+    private static final Set<String> judgeTokens = ConcurrentHashMap.newKeySet();
+    /** 总管（开发者）单独账户：只有总管能授予、撤销管理员 */
+    private static final String SUPER_USER = System.getenv().getOrDefault("SUPER_USER", "supervisor");
+    private static final String SUPER_PASS = System.getenv().getOrDefault("SUPER_PASS", "super2026");
+    private static final Set<String> superTokens = ConcurrentHashMap.newKeySet();
+    /** 倒计时长度：裁判点开赛后先给 10 秒准备 */
+    private static final long CONTEST_COUNTDOWN_MS = 10_000L;
+    /** 快照式快捷消息：只在内存里留最近 30 条，5 秒后前端不再展示，不落库 */
+    private static final int QUICK_KEEP = 30;
+    private static final long QUICK_LIVE_MS = 6000L;
+    private static final Map<String, Object[]> quickMsgs = new ConcurrentHashMap<>();
+    private static final AtomicInteger quickSeq = new AtomicInteger(0);
+    /** 禁言档位：30 秒 / 5 分钟 / 1 小时 / 1 天 / 10 年 */
+    private static final long[] MUTE_STEPS_MS = {
+        30_000L, 300_000L, 3_600_000L, 86_400_000L, 315_360_000_000L,
+    };
+    /** 连续 24 小时没有新违规，违规次数清零 */
+    private static final long MUTE_RESET_MS = 86_400_000L;
+
+    /** 同时最多 2 个判题，其余排队，避免把机器打满 */
+    private static final Semaphore JUDGE_SLOTS = new Semaphore(2, true);
+    /** 后台效率评测线程池，最多 2 个任务同时跑 */
+    private static final ExecutorService EFFICIENCY_POOL = Executors.newFixedThreadPool(2);
+    /** 已排队等待效率评测的账号，防止同一份卷子重复排队 */
+    private static final Set<String> efficiencyQueued = ConcurrentHashMap.newKeySet();
+    /** 裁判强制收卷用的线程池：几十个人同时收卷，不能占着判题信号量排队 */
+    private static final ExecutorService FORCE_POOL = Executors.newFixedThreadPool(4);
+
+    static final class Session {
+        String username;
+        int no;
+        /** player 选手 / viewer 观众，登录时选定，整个会话不变 */
+        String role = "player";
+        long startMillis;
+        long lastTestMillis;
+        boolean finished;
+        boolean judging;
+        /** 最后一次带着本令牌请求的时刻，用来回收长期不动的会话 */
+        long lastSeenMillis;
+    }
+
+    /** 会话空闲超过 12 小时就回收：比赛当天秒级轮询，不会误伤 */
+    private static final long SESSION_IDLE_MS = 12 * 3600 * 1000L;
+    private static volatile long lastSessionSweep = 0L;
+
+    public static byte[] readAllBytes(InputStream is) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = is.read(buf)) != -1) {
+            bos.write(buf, 0, len);
+        }
+        return bos.toByteArray();
+    }
+
+    public static void main(String[] args) throws Exception {
+        Path dataDir = Paths.get("data");
+        store = new Store(dataDir);
+        // 重启会把内存里的效率评测队列清空，已交卷但没算完的下次打开页面会永远「测算中」，
+        // 启动时按成绩表补跑一遍。
+        recoverPendingEfficiency();
+        // 重启后把落盘的开始时刻读回来，比赛中途重启不影响选手计时
+        for (String key : store.keysWithPrefix("start.")) {
+            long v = store.stateLong(key, 0L);
+            if (v > 0) {
+                startTimes.put(key.substring("start.".length()), v);
+            }
+        }
+
+        HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+        server.setExecutor(Executors.newFixedThreadPool(16));
+
+        server.createContext("/api/login", h(Main::login));
+        server.createContext("/api/logout", h(Main::logout));
+        server.createContext("/api/start", h(Main::start));
+        server.createContext("/api/test", h(Main::test));
+        server.createContext("/api/finish", h(Main::finish));
+        server.createContext("/api/judge-efficiency", h(Main::judgeEfficiency));
+        server.createContext("/api/me", h(Main::me));
+        server.createContext("/api/problem", h(Main::problem));
+        server.createContext("/api/leaderboard", h(Main::leaderboard));
+        server.createContext("/api/admin/login", h(Main::adminLogin));
+        server.createContext("/api/admin/results", h(Main::adminResults));
+        server.createContext("/api/admin/clear-all", h(Main::adminClearAll));
+        server.createContext("/api/admin/delete-one", h(Main::adminDeleteOne));
+        server.createContext("/api/comments", h(Main::commentsApi));
+        server.createContext("/api/watch", h(Main::watchApi));
+        server.createContext("/api/watch/code", h(Main::watchCodeApi));
+        server.createContext("/api/watch/danmaku", h(Main::watchDanmaku));
+        server.createContext("/api/editor", h(Main::editorApi));
+        server.createContext("/api/admin/comment-post", h(Main::adminCommentPost));
+        server.createContext("/api/admin/comment-delete", h(Main::adminCommentDelete));
+        server.createContext("/api/admin/users", h(Main::adminUsers));
+        server.createContext("/api/admin/user-op", h(Main::adminUserOp));
+        server.createContext("/api/contest", h(Main::contestApi));
+        server.createContext("/api/judge/login", h(Main::judgeLogin));
+        server.createContext("/api/super/login", h(Main::superLogin));
+        server.createContext("/api/super/pass", h(Main::superPassChange));
+        server.createContext("/api/staff/comment", h(Main::staffComment));
+        server.createContext("/api/judge/pass", h(Main::judgePassChange));
+        server.createContext("/api/judge/start-contest", h(Main::judgeStartContest));
+        server.createContext("/api/judge/force-end", h(Main::judgeForceEnd));
+        server.createContext("/api/judge/violate", h(Main::judgeViolate));
+        server.createContext("/api/judge/user-op", h(Main::judgeUserOp));
+        server.createContext("/api/judge/reports", h(CaseCenter::legacyJudgeReports));
+        server.createContext("/api/judge/report-ack", h(CaseCenter::legacyJudgeReportAck));
+        server.createContext("/api/admin/pass", h(Main::adminPassChange));
+        server.createContext("/api/admin/report", h(CaseCenter::legacyAdminReport));
+        server.createContext("/api/user/pass", h(Main::userPassChange));
+        server.createContext("/api/user/sec", h(Main::userSec));
+        server.createContext("/api/reset/quiz", h(Main::resetQuiz));
+        server.createContext("/api/reset/pass", h(Main::resetPass));
+        server.createContext("/api/quick", h(Main::quickApi));
+        server.createContext("/api/user/nick", h(Main::userNick));
+        server.createContext("/api/case/report", h(CaseCenter::report));
+        server.createContext("/api/case/appeal", h(CaseCenter::appeal));
+        server.createContext("/api/case/mine", h(CaseCenter::mine));
+        server.createContext("/api/case/targets", h(CaseCenter::targets));
+        server.createContext("/api/case/list", h(CaseCenter::list));
+        server.createContext("/api/case/op", h(CaseCenter::op));
+        server.createContext("/", h(Main::staticFile));
+
+        server.start();
+
+        String ip = localIp();
+        System.out.println("========================================");
+        System.out.println("  排序算法测评平台 已启动");
+        System.out.println("  本机访问: http://localhost:" + PORT);
+        System.out.println("  同学访问: http://" + ip + ":" + PORT);
+        System.out.println("  后台看榜: http://" + ip + ":" + PORT + "/admin");
+        System.out.println("  账号 202530126001 ~ 202530126065，密码 123456");
+        System.out.println("========================================");
+    }
+
+    // ---------------- 接口 ----------------
+
+    private static void login(HttpExchange ex) throws IOException {
+        Map<String, String> f = form(ex);
+        String username = field(f, "username");
+        String password = f.getOrDefault("password", "").trim();
+        // 登录时必须选身份：选手 或 观众
+        String role = "viewer".equals(f.getOrDefault("role", "player")) ? "viewer" : "player";
+
+        Store.User u = store.findUser(username);
+        if (u == null || !passwordOf(u.username).equals(password)) {
+            error(ex, 401, "账号或密码不对");
+            return;
+        }
+        // 被封号的人仍然可以登录：降为观众，只能观赛和申诉，不能参赛、不能发言
+        boolean banned = isBanned(username);
+        if (banned) {
+            role = "viewer";
+        }
+        // 比赛已经开跑才进来的：不再给本场参赛资格，直接按观众身份进观赛页
+        boolean latePlayer = false;
+        if (!banned && "player".equals(role) && "running".equals(contestStatus())
+                && store.state("player." + username, "").isEmpty()) {
+            role = "viewer";
+            latePlayer = true;
+        }
+        if ("player".equals(role)) {
+            // 选手名单是动态的：谁选了选手身份登录，谁就出现在观赛列表里
+            if (store.state("player." + username, "").isEmpty()) {
+                store.setState("player." + username, Store.now());
+            }
+        }
+
+        String token = UUID.randomUUID().toString().replace("-", "");
+        String activeKey = username + "#" + role;
+        String old = activeToken.put(activeKey, token);
+        boolean kickedPrevious = old != null && !old.equals(token);
+        if (kickedPrevious) {
+            sessions.remove(old);
+            killedTokens.put(old, System.currentTimeMillis());
+        }
+
+        Session s = new Session();
+        s.username = u.username;
+        s.no = u.no;
+        s.role = role;
+        Long st = startTimes.get(u.username);
+        s.startMillis = st == null ? 0L : st;
+        s.finished = store.getResult(u.username) != null;
+        s.lastSeenMillis = System.currentTimeMillis();
+        sessions.put(token, s);
+        lastSeen.put(u.username, System.currentTimeMillis());
+
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.str("token", token)).append(',');
+        sb.append(Json.str("username", u.username)).append(',');
+        sb.append(Json.inum("no", u.no)).append(',');
+        sb.append(Json.str("role", role)).append(',');
+        sb.append(Json.str("contest", contestStatus())).append(',');
+        sb.append(Json.inum("muteUntil", muteUntil(username)));
+        if (latePlayer) {
+            sb.append(',').append(Json.str("notice", "比赛已经开始，你本场未报名，现按观众身份进入观赛，请静候下场比赛"));
+        } else if (banned) {
+            sb.append(',').append(Json.str("notice", "该账号已被封禁，只能观赛与提交申诉，不能参赛或发言"));
+        }
+        sb.append(',').append(Json.bool("kickedPrevious", kickedPrevious));
+        sb.append('}');
+        ok(ex, sb.toString());
+    }
+
+    /** 退出登录：把这个 token 主动作废，免得下次别人登录时它还算「被顶」 */
+    private static void logout(HttpExchange ex) throws IOException {
+        String token = ex.getRequestHeaders().getFirst("X-Token");
+        if (token != null) {
+            Session s = sessions.remove(token);
+            if (s != null && token.equals(activeToken.get(s.username + "#" + s.role))) {
+                activeToken.remove(s.username + "#" + s.role);
+            }
+        }
+        okTrue(ex);
+    }
+
+    private static void start(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!requirePlayer(ex, s, "观众身份不能作答")) {
+            return;
+        }
+        String cs = contestStatus();
+        if ("idle".equals(cs)) {
+            error(ex, 409, "裁判尚未开启比赛");
+            return;
+        }
+        if ("countdown".equals(cs)) {
+            error(ex, 409, "比赛马上开始，请等倒计时结束");
+            return;
+        }
+        if ("finished".equals(cs)) {
+            error(ex, 409, "本场比赛已结束");
+            return;
+        }
+        if (s.finished) {
+            error(ex, 409, "你已经交过卷了，不能重新计时");
+            return;
+        }
+        if (s.startMillis == 0) {
+            // putIfAbsent：两个窗口同时点「开始」也只认第一次，计时不会被重置
+            long now = System.currentTimeMillis();
+            Long prev = startTimes.putIfAbsent(s.username, now);
+            s.startMillis = prev == null ? now : prev;
+            // 落盘一份开始时刻，服务重启（改代码、换端口）后不会把在场比赛的人计时清零
+            store.setState("start." + s.username, String.valueOf(s.startMillis));
+        }
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.bool("ok", true)).append(',');
+        sb.append(Json.inum("elapsedSeconds", elapsedSeconds(s)));
+        sb.append('}');
+        ok(ex, sb.toString());
+    }
+
+    private static void test(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!requirePlayer(ex, s, "观众身份不能运行代码")) {
+            return;
+        }
+        if (s.startMillis == 0) {
+            error(ex, 409, "请先点「开始」");
+            return;
+        }
+        if (s.finished) {
+            error(ex, 409, "已交卷");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - s.lastTestMillis < TEST_COOLDOWN_MS) {
+            error(ex, 429, "点太快了，缓 " + (TEST_COOLDOWN_MS / 1000) + " 秒再试");
+            return;
+        }
+        s.lastTestMillis = now;
+
+        Map<String, String> f = form(ex);
+        String code = f.getOrDefault("code", "");
+        if (code.trim().isEmpty()) {
+            error(ex, 400, "代码是空的");
+            return;
+        }
+        boolean acquired;
+        try {
+            acquired = JUDGE_SLOTS.tryAcquire(30, TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            acquired = false;
+        }
+        if (!acquired) {
+            error(ex, 503, "判题机忙，稍后再试");
+            return;
+        }
+        try {
+            JudgeEngine engine = new JudgeEngine();
+            JudgeEngine.Outcome out = engine.testRun(code);
+            StringBuilder sb = new StringBuilder("{");
+            sb.append(Json.bool("ok", true)).append(',');
+            sb.append(Json.str("terminal", out.terminal)).append(',');
+            sb.append(Json.inum("elapsedSeconds", elapsedSeconds(s)));
+            sb.append('}');
+            ok(ex, sb.toString());
+        } finally {
+            JUDGE_SLOTS.release();
+        }
+    }
+
+    /** 交卷：只跑正确性，编码计时在这里定格，效率留给后台 */
+    private static void finish(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!requirePlayer(ex, s, "观众身份不能交卷")) {
+            return;
+        }
+        if (s.startMillis == 0) {
+            error(ex, 409, "请先点「开始」");
+            return;
+        }
+        if (s.finished) {
+            error(ex, 409, "已经交过卷了");
+            return;
+        }
+        // 裁判强制结束之后不再收卷：否则选手可以在截止后继续交，
+        // 把已经按白卷/当前代码定下的成绩覆盖掉，等于没有截止时间
+        String contestNow = contestStatus();
+        if (!"running".equals(contestNow)) {
+            error(ex, 409, "本场比赛已结束，不能再交卷");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String code = f.getOrDefault("code", "");
+        if (code.trim().isEmpty()) {
+            error(ex, 400, "代码是空的，没法判");
+            return;
+        }
+        // 同一账号可能有多个窗口在（旧窗口还没被顶掉时），只让一个真正判，避免成绩被覆盖
+        if (!finishingAccounts.add(s.username)) {
+            error(ex, 409, "这个账号的卷子正在判，别连点");
+            return;
+        }
+        boolean acquired;
+        try {
+            acquired = JUDGE_SLOTS.tryAcquire(60, TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            acquired = false;
+            finishingAccounts.remove(s.username);
+        }
+        if (!acquired) {
+            finishingAccounts.remove(s.username);
+            error(ex, 503, "判题机忙，稍后再点");
+            return;
+        }
+        s.judging = true;
+        try {
+            // 编码分按秒算：取整到分钟会让 40:59 仍然拿满分
+            long seconds = elapsedSeconds(s);
+            JudgeEngine engine = new JudgeEngine();
+            JudgeEngine.Outcome out = engine.judgeCorrectOnly(code, seconds);
+
+            Store.ResultRecord r = new Store.ResultRecord();
+            r.username = s.username;
+            r.no = s.no;
+            r.score = out.score;
+            r.correct = out.correct;
+            r.codingMinutes = seconds / 60L;
+            r.codingSeconds = seconds;
+            r.efficiencyScore = 0.0;
+            r.efficiencyReady = false;
+            r.caseOk = out.caseOk;
+            r.caseTotal = out.caseTotal;
+            r.finishedAt = Store.now();
+            r.detail = out.detail;
+            r.codeSnapshot = code;
+            store.saveResult(r);
+            // 提交的那一刻也留一版快照，观众端在延迟窗口之后能看到最终代码
+            pushLiveCode(s.username, code);
+            // 效率评测由服务端自己排队：前端关掉页面也不会漏算，
+            // 而且用的是刚存下的快照，前端伪造不了代码
+            if (out.correct) {
+                enqueueEfficiency(s.username);
+            }
+
+            s.finished = true;
+            ok(ex, resultJson(r) + "");
+        } catch (Exception e) {
+            error(ex, 500, "判题出错：" + e.getMessage());
+        } finally {
+            s.judging = false;
+            finishingAccounts.remove(s.username);
+            JUDGE_SLOTS.release();
+        }
+    }
+
+    /**
+     * 效率评测的触发口。
+     *
+     * 这里**只做排队**，不再接收前端传来的代码：以前允许前端把任意代码塞进来重算，
+     * 等于「交一份错解锁 0 分，再拿另一份快排把效率分刷回来」，实测能拿到 40 分；
+     * 被判罚成 0 分的记录也能靠同一个口子回填 40 分。
+     * 现在统一用交卷时保存的代码快照，且只有正确性通过的记录才有资格评测。
+     *
+     * 保留这个接口是为了兼容旧前端和「交卷后关掉页面」的情况：重复调用是幂等的。
+     */
+    private static void judgeEfficiency(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!requirePlayer(ex, s, "观众身份不能评测")) {
+            return;
+        }
+        Store.ResultRecord rec = store.getResult(s.username);
+        if (rec == null) {
+            error(ex, 409, "还没有交卷，没有可评测的记录");
+            return;
+        }
+        if (!rec.correct) {
+            error(ex, 409, "正确性未通过，不进行效率评测");
+            return;
+        }
+        if (rec.efficiencyReady) {
+            ok(ex, "{\"ok\":true,\"msg\":\"效率评测已完成\"}");
+            return;
+        }
+        enqueueEfficiency(s.username);
+        ok(ex, "{\"ok\":true,\"msg\":\"效率评测已转后台\"}");
+    }
+
+    /** 启动时补跑上次没算完的效率评测（正确但 efficiencyReady=false 的记录） */
+    private static void recoverPendingEfficiency() {
+        for (Store.ResultRecord r : store.allResults()) {
+            if (r.correct && !r.efficiencyReady
+                    && r.codeSnapshot != null && !r.codeSnapshot.trim().isEmpty()) {
+                enqueueEfficiency(r.username);
+            }
+        }
+    }
+
+    /** 同一账号只排一次，避免连点或旧前端重试把评测任务堆起来 */
+    private static void enqueueEfficiency(String username) {
+        if (!efficiencyQueued.add(username)) {
+            return;
+        }
+        EFFICIENCY_POOL.submit(() -> {
+            try {
+                runEfficiency(username);
+            } catch (Throwable t) {
+                System.err.println("效率评测异常 " + username + "：" + shortError(t));
+            } finally {
+                efficiencyQueued.remove(username);
+            }
+        });
+    }
+
+    /**
+     * 真正跑效率评测并回填成绩。
+     * 全程只认服务端保存的快照；如果评测期间这份记录被删、被判罚、被重新提交
+     * （对象已经不是同一条），结果直接丢弃，绝不覆盖新成绩。
+     */
+    private static void runEfficiency(String username) {
+        Store.ResultRecord rec = store.getResult(username);
+        if (rec == null || !rec.correct) {
+            return;
+        }
+        String code = rec.codeSnapshot == null ? "" : rec.codeSnapshot;
+        if (code.trim().isEmpty()) {
+            // 没有代码快照也必须给一个终态，不能永远停在「测算中」
+            try {
+                rec.efficiencyReady = true;
+                rec.efficiencyScore = 0.0;
+                rec.detail = rec.detail + " 效率评测完成：无代码快照，按 0 分;";
+                store.saveResult(rec);
+            } catch (IOException ignore) {
+            }
+            return;
+        }
+
+        double eff = 0.0;
+        double runMillis = 0.0;
+        String note = null;
+        try {
+            JudgeEngine.EfficiencyResult res = new JudgeEngine().judgeEfficiencyOnly(code);
+            eff = res.score;
+            runMillis = res.avgMillis;
+        } catch (Throwable t) {
+            // 评测崩了也得往下走：分数记 0，状态照样标记完成，否则前端永远停在「测算中」
+            eff = 0.0;
+            note = shortError(t);
+            System.err.println("效率评测异常：" + note);
+        }
+
+        synchronized (store) {
+            Store.ResultRecord cur = store.getResult(username);
+            if (cur != rec || !cur.correct) {
+                return;   // 评测期间记录被替换或判罚，结果作废
+            }
+            try {
+                double coding = ScoreCalculator.codingScoreSeconds(Store.codingSecondsOf(cur));
+                cur.efficiencyScore = eff;
+                cur.runMillis = runMillis;
+                cur.efficiencyReady = true;
+                cur.score = 60.0 + coding + eff;
+                cur.detail = cur.detail + " 效率评测完成：" + ScoreCalculator.format(eff) + "/20"
+                        + (note == null ? "" : "（评测过程异常：" + note + "）") + ";";
+                store.saveResult(cur);
+            } catch (IOException io) {
+                System.err.println("效率评测结果落盘失败：" + io.getMessage());
+            }
+        }
+    }
+
+    private static void me(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.str("username", s.username)).append(',');
+        sb.append(Json.inum("no", s.no)).append(',');
+        sb.append(Json.str("nick", CaseCenter.nickOf(s.username))).append(',');
+        sb.append(Json.str("role", s.role)).append(',');
+        String status;
+        if (!"player".equals(s.role)) {
+            status = "VIEWER";
+        } else {
+            status = s.finished ? "FINISHED" : (s.startMillis == 0 ? "NOT_STARTED" : "CODING");
+        }
+        sb.append(Json.str("status", status)).append(',');
+        sb.append(Json.str("contest", contestStatus())).append(',');
+        sb.append(Json.inum("muteUntil", muteUntil(s.username))).append(',');
+        sb.append(Json.inum("elapsedSeconds", elapsedSeconds(s)));
+        Store.ResultRecord r = store.getResult(s.username);
+        if (r != null) {
+            sb.append(',').append(Json.esc("result")).append(':').append(resultJson(r));
+        }
+        sb.append('}');
+        ok(ex, sb.toString());
+    }
+
+    private static void problem(HttpExchange ex) throws IOException {
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.str("title", "排序算法测评平台"));
+        sb.append(',').append(Json.str("desc",
+                "编写类 Solution，实现方法 public void sort(int[] arr)，对传入数组执行升序原地排序。排序算法不限，插入排序、快速排序、归并排序等均可使用。"
+                        + "平台自动传入数组，无需读取输入，无需控制台输出，排序结果写回原数组即可。"
+                        + "点击【测试运行】可执行多组小规模样例，输出排序前后数组内容，供调试使用；小样例通过不代表正式评测可以通过。"
+                        + "正式评测以规模 1000 至 10000 的数据集校验正确性，全部用例通过后，再以十万级数据集统计运行耗时。"
+                        + "效率评测在后台异步执行，提交后无需等待，分数自动更新。"));
+        sb.append(',').append(Json.str("accountHint", "202530126001 ~ 202530126065，密码统一 123456"));
+        sb.append('}');
+        ok(ex, sb.toString());
+    }
+
+    private static void leaderboard(HttpExchange ex) throws IOException {
+        List<Store.ResultRecord> list = store.leaderboard();
+        StringBuilder sb = new StringBuilder("[");
+        int rank = 1;
+        for (Store.ResultRecord r : list) {
+            // 越界分数（旧口径污染、手改文件）不进排行榜，避免比赛当天出现假名次
+            if (r.score < 0 || r.score > 100) {
+                continue;
+            }
+            if (sb.length() > 1) {
+                sb.append(',');
+            }
+            sb.append('{')
+                    .append(Json.inum("rank", rank++)).append(',')
+                    .append(Json.inum("no", r.no)).append(',')
+                    .append(Json.str("username", r.username)).append(',')
+                    .append(Json.num("score", r.score)).append(',')
+                    .append(Json.inum("codingSeconds", r.codingSeconds)).append(',')
+                    .append(Json.num("runMillis", r.runMillis)).append(',')
+                    .append(Json.num("baseScore", r.correct ? 60.0 : 0.0)).append(',')
+                    .append(Json.num("codingScore", r.correct ? ScoreCalculator.codingScoreSeconds(Store.codingSecondsOf(r)) : 0.0)).append(',')
+                    .append(Json.num("efficiencyScore", r.efficiencyScore)).append(',')
+                    .append(Json.bool("efficiencyReady", r.efficiencyReady)).append(',')
+                    .append(Json.bool("correct", r.correct)).append(',')
+                    .append(Json.str("finishedAt", r.finishedAt))
+                    .append('}');
+        }
+        ok(ex, sb.append(']').toString());
+    }
+
+    /**
+     * 管理员登录：带账号的就是被裁判授予权限的学生（默认口令是他的学号），
+     * 不带账号的走主口令，给老师自己留一条后路。
+     */
+    private static void adminLogin(HttpExchange ex) throws IOException {
+        if (System.currentTimeMillis() < adminLockUntil) {
+            error(ex, 429, "口令错误次数太多，先等 1 分钟");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String username = field(f, "username");
+        String pass = f.getOrDefault("password", "").trim();
+        String who;
+        if (username.isEmpty()) {
+            if (!ADMIN_PASS.equals(pass)) {
+                adminLoginFail(ex);
+                return;
+            }
+            who = "master";
+        } else {
+            Store.User u = store.findUser(username);
+            if (u == null || !isAdminAccount(username) || !adminPassOf(username).equals(pass)) {
+                adminLoginFail(ex);
+                return;
+            }
+            who = username;
+        }
+        adminFails.set(0);
+        String token = UUID.randomUUID().toString().replace("-", "");
+        adminTokens.add(token);
+        adminTokenUsers.put(token, who);
+        ok(ex, "{" + Json.str("token", token) + ","
+                + Json.str("role", "admin") + ","
+                + Json.str("who", who) + ","
+                + Json.str("name", "master".equals(who) ? "主管理员" : who) + "}");
+    }
+
+    private static void adminLoginFail(HttpExchange ex) throws IOException {
+        if (adminFails.incrementAndGet() >= ADMIN_MAX_FAILS) {
+            adminFails.set(0);
+            adminLockUntil = System.currentTimeMillis() + ADMIN_LOCK_MS;
+        }
+        error(ex, 401, "口令不对");
+    }
+
+    private static void adminResults(HttpExchange ex) throws IOException {
+        if (!requireAdminOrSuper(ex)) {
+            return;
+        }
+        List<Store.ResultRecord> list = store.leaderboard();
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.inum("total", list.size())).append(',');
+        sb.append(Json.inum("users", store.allUsers().size())).append(',');
+        sb.append(Json.esc("results")).append(":[");
+        int i = 0;
+        for (Store.ResultRecord r : list) {
+            if (i++ > 0) {
+                sb.append(',');
+            }
+            sb.append(resultJson(r));
+        }
+        sb.append("]}");
+        ok(ex, sb.toString());
+    }
+
+    /** 管理员清空全部成绩：内存和 data 下的 tsv/csv 一起清掉 */
+    private static void adminClearAll(HttpExchange ex) throws IOException {
+        if (!requireAdminOrSuper(ex)) {
+            return;
+        }
+        store.clearAll();
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.str("msg", "提交记录已清空") + "}");
+    }
+
+    /**
+     * 删除单个选手的成绩：有人中途出了状况、裁判同意重考时用，
+     * 其他人的成绩保持不动。顺带把该账号的会话和计时一并重置，
+     * 让他能重新点【开始】从头来一遍。
+     */
+    private static void adminDeleteOne(HttpExchange ex) throws IOException {
+        if (!requireAdminOrSuper(ex)) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String username = field(f, "username");
+        if (username.isEmpty()) {
+            error(ex, 400, "缺少选手账号");
+            return;
+        }
+        synchronized (store) {
+            boolean removed = store.deleteResult(username);
+            if (!removed) {
+                error(ex, 404, "该选手没有成绩记录");
+                return;
+            }
+            activeToken.remove(username + "#player");
+            activeToken.remove(username + "#viewer");
+            sessions.entrySet().removeIf(e -> username.equals(e.getValue().username));
+            startTimes.remove(username);
+            store.removeState("start." + username);
+            store.removeState("violation." + username);
+            store.removeState("violprev." + username);
+            finishingAccounts.remove(username);
+            lastCommentAt.remove(username);
+            efficiencyQueued.remove(username);
+        }
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.str("msg", "已删除 " + username + " 的成绩，该账号可重新作答") + "}");
+    }
+
+    private static String commentJson(Store.Comment c) {
+        return "{" + Json.inum("id", c.id) + ","
+                + Json.str("role", c.role) + ","
+                + Json.inum("no", c.no) + ","
+                + Json.str("username", c.username) + ","
+                + Json.str("text", c.text) + ","
+                + Json.str("time", c.time) + ","
+                + Json.str("kind", c.kind) + "}";
+    }
+
+    /** 讨论区：GET 拉最新一页，POST 发一条。选手本人完赛前对讨论区不可见、不可发 */
+    private static void commentsApi(HttpExchange ex) throws IOException {
+        if ("GET".equalsIgnoreCase(ex.getRequestMethod())) {
+            // 裁判、总管、管理员都可以进观赛页/后台看讨论，但只读不写（发言走专门接口）
+            boolean judgeViewer = isJudge(ex) || isSuper(ex) || isAdmin(ex);
+            Session s = judgeViewer ? null : auth(ex);
+            if (!judgeViewer && s == null) {
+                return;
+            }
+            String q = ex.getRequestURI().getQuery();
+            boolean onlyDanmaku = q != null && q.contains("kind=danmaku");
+            // 选手本人未完赛时可以看弹幕，但看不到讨论内容
+            if (!judgeViewer && !onlyDanmaku && !canReadDiscussion(s)) {
+                error(ex, 403, "本人完赛前讨论区关闭，提交代码后自动解锁");
+                return;
+            }
+            int limit = (int) queryLong(ex, "limit", 60L);
+            if (limit <= 0 || limit > 200) {
+                limit = 60;
+            }
+            List<Store.Comment> list = store.recentComments(onlyDanmaku ? 200 : limit);
+            if (onlyDanmaku) {
+                List<Store.Comment> dm = new ArrayList<>();
+                for (Store.Comment c : list) {
+                    if ("danmaku".equals(c.kind)) {
+                        dm.add(c);
+                    }
+                }
+                if (dm.size() > limit) {
+                    dm = new ArrayList<>(dm.subList(dm.size() - limit, dm.size()));
+                }
+                list = dm;
+            }
+            StringBuilder sb = new StringBuilder("{");
+            sb.append(Json.inum("last", store.lastCommentId())).append(',');
+            sb.append(Json.esc("items")).append(":[");
+            int i = 0;
+            for (Store.Comment c : list) {
+                if (i++ > 0) {
+                    sb.append(',');
+                }
+                sb.append(commentJson(c));
+            }
+            sb.append("]}");
+            ok(ex, sb.toString());
+            return;
+        }
+
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String text = cleanCommentText(f.getOrDefault("text", ""));
+        if (text.isEmpty()) {
+            error(ex, 400, "内容不能为空");
+            return;
+        }
+        String kind = "danmaku".equals(f.getOrDefault("kind", "comment")) ? "danmaku" : "comment";
+        if ("danmaku".equals(kind)) {
+            // 弹幕所有人都能发（选手用于赛前沟通），但比赛进行期间整体关闭
+            String cs = contestStatus();
+            if ("running".equals(cs) || "countdown".equals(cs)) {
+                error(ex, 403, "比赛进行中，弹幕已关闭，比赛结束后开放");
+                return;
+            }
+        } else if (!canReadDiscussion(s)) {
+            // 讨论内容对未完赛选手锁定，弹幕不受此限
+            error(ex, 403, "本人完赛前讨论区关闭，提交代码后自动解锁");
+            return;
+        }
+        if (!speechAllowed(ex, s.username, text)) {
+            return;
+        }
+        if ("danmaku".equals(kind) && promptBlockedWord(text) != null) {
+            error(ex, 400, "弹幕含有比赛提示内容，已拦截");
+            return;
+        }
+        long nowMs = System.currentTimeMillis();
+        if (tooFast(s.username, COMMENT_COOLDOWN_MS)) {
+            error(ex, 429, "发送过于频繁，请稍候几秒");
+            return;
+        }
+        String role = "player".equals(s.role) ? "student" : "viewer";
+        String who = "player".equals(s.role) ? s.username : ("观众" + s.no);
+        Store.Comment c = store.addComment(role, who, s.no, text, kind);
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.esc("comment") + ":" + commentJson(c) + "}");
+    }
+
+    /** 讨论区是否对本人开放：观众一直可看，选手只有自己完赛后才能看 */
+    private static boolean canReadDiscussion(Session s) {
+        if (!"player".equals(s.role)) {
+            return true;
+        }
+        return s.finished || store.getResult(s.username) != null;
+    }
+
+    /** 管理员（或总管）在后台发言：统一打上身份，学生端会显示成「管理员：内容」 */
+    private static void adminCommentPost(HttpExchange ex) throws IOException {
+        if (!requireAdminOrSuper(ex)) {
+            return;
+        }
+        boolean superUser = isSuper(ex);
+        Map<String, String> f = form(ex);
+        String text = cleanCommentText(f.getOrDefault("text", ""));
+        if (text.isEmpty()) {
+            error(ex, 400, "内容不能为空");
+            return;
+        }
+        Store.Comment c = superUser
+                ? store.addComment("super", "总管", 0, text)
+                : store.addComment("admin", "admin", 0, text);
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.esc("comment") + ":" + commentJson(c) + "}");
+    }
+
+    /** 管理员删除一条讨论区消息 */
+    private static void adminCommentDelete(HttpExchange ex) throws IOException {
+        if (!requireAdminOrSuper(ex)) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        long id = queryLong(ex, "id", -1L);
+        if (id < 0) {
+            String raw = f.getOrDefault("id", "").trim();
+            try {
+                id = Long.parseLong(raw);
+            } catch (Exception ignore) {
+                id = -1L;
+            }
+        }
+        if (id < 0) {
+            error(ex, 400, "缺少消息编号");
+            return;
+        }
+        boolean removed = store.deleteComment(id);
+        if (!removed) {
+            error(ex, 404, "该消息已被删除");
+            return;
+        }
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.str("msg", "已删除该条发言") + "}");
+    }
+
+    // ---------------- 观赛端（观众） ----------------
+
+    /**
+     * 观赛数据：公开只读，只暴露进度，不返回任何代码。
+     * state：idle 未开始 / coding 作答中 / judging 已交卷等效率评测 / finished 已完成
+     */
+    /** 选手端把编辑器里的内容推上来，供观赛端延迟展示 */
+    private static void editorApi(HttpExchange ex) throws IOException {
+        if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) {
+            error(ex, 405, "只支持 POST");
+            return;
+        }
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!requirePlayer(ex, s, "观众身份不能上报代码")) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String code = f.getOrDefault("code", "");
+        if (code.length() > LIVE_CODE_MAX_CHARS) {
+            code = code.substring(0, LIVE_CODE_MAX_CHARS);
+        }
+        pushLiveCode(s.username, code);
+        okTrue(ex);
+    }
+
+    /** 记一版代码：内容没变就不重复存，队列最多留 LIVE_CODE_KEEP 版 */
+    private static void pushLiveCode(String username, String code) {
+        long now = System.currentTimeMillis();
+        List<CodeSnap> list = liveCodes.computeIfAbsent(username, k -> new ArrayList<>());
+        synchronized (list) {
+            if (!list.isEmpty() && list.get(list.size() - 1).code.equals(code)) {
+                return;
+            }
+            list.add(new CodeSnap(code, now));
+            while (list.size() > LIVE_CODE_KEEP) {
+                list.remove(0);
+            }
+        }
+    }
+
+    /**
+     * 观众拉某位选手的代码：直接返回最新一版。
+     * 公平性靠「比赛中弹幕关闭 + 防提示词拦截」保证，不再靠时间延迟。
+     */
+    private static void watchCodeApi(HttpExchange ex) throws IOException {
+        if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
+            error(ex, 405, "只支持 GET");
+            return;
+        }
+        // 实时代码不是公开数据：至少要有登录态；正在比赛的选手不能看别人的代码。
+        // 观众、裁判、总管、后台管理员不受影响（观赛页仍然「不设延迟」）。
+        if (!isJudge(ex) && !isSuper(ex) && !isAdmin(ex)) {
+            Session viewer = auth(ex);
+            if (viewer == null) {
+                return;
+            }
+            if ("player".equals(viewer.role)
+                    && !viewer.finished
+                    && store.getResult(viewer.username) == null) {
+                error(ex, 403, "本人交卷后才能查看其他选手的实时代码");
+                return;
+            }
+        }
+        long no = queryLong(ex, "no", 0L);
+        Store.User target = null;
+        for (Store.User u : store.allUsers()) {
+            if (u.no == no) {
+                target = u;
+                break;
+            }
+        }
+        if (target == null) {
+            error(ex, 404, "没有这个选手");
+            return;
+        }
+        String code = null;
+        long at = 0L;
+        List<CodeSnap> list = liveCodes.get(target.username);
+        if (list != null) {
+            synchronized (list) {
+                // 弹幕里已经做了防提示拦截，这里直接给最新一版，不再做时间延迟
+                if (!list.isEmpty()) {
+                    CodeSnap last = list.get(list.size() - 1);
+                    code = last.code;
+                    at = last.at;
+                }
+            }
+        }
+        if (code == null) {
+            ok(ex, "{" + Json.inum("no", no) + ","
+                    + Json.bool("ready", false) + ","
+                    + Json.str("code", "") + "}");
+            return;
+        }
+        ok(ex, "{" + Json.inum("no", no) + ","
+                + Json.bool("ready", true) + ","
+                + Json.inum("at", at) + ","
+                + Json.str("code", code) + "}");
+    }
+
+    /** 观赛页只给一句摘要：压成一行，去掉用例明细，超长截断 */
+    private static String watchDetailText(String detail) {
+        String s = detail.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ');
+        int idx = s.indexOf('；');
+        if (idx < 0) {
+            idx = s.indexOf(';');
+        }
+        if (idx > 0) {
+            s = s.substring(0, idx);
+        }
+        if (s.length() > 80) {
+            s = s.substring(0, 80) + "…";
+        }
+        return s.trim();
+    }
+
+    private static void watchApi(HttpExchange ex) throws IOException {
+        if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
+            error(ex, 405, "只支持 GET");
+            return;
+        }
+        long nowMs = System.currentTimeMillis();
+        Map<String, Store.ResultRecord> recByUser = new HashMap<>();
+        for (Store.ResultRecord r : store.leaderboard()) {
+            recByUser.put(r.username, r);
+        }
+
+        // 效率跑完的人才给名次；没跑完的排在他们后面，观赛页按状态分组显示
+        List<Store.ResultRecord> doneList = new ArrayList<>();
+        for (Store.ResultRecord r : recByUser.values()) {
+            if (r.efficiencyReady) {
+                doneList.add(r);
+            }
+        }
+        doneList.sort((a, b) -> {
+            int c = Double.compare(b.score, a.score);
+            if (c != 0) {
+                return c;
+            }
+            c = Long.compare(Store.codingSecondsOf(a), Store.codingSecondsOf(b));
+            if (c != 0) {
+                return c;
+            }
+            return Integer.compare(a.no, b.no);
+        });
+        Map<String, Integer> ranks = new HashMap<>();
+        for (int i = 0; i < doneList.size(); i++) {
+            ranks.put(doneList.get(i).username, i + 1);
+        }
+
+        int codingCount = 0;
+        int judgingCount = 0;
+        int finishedCount = 0;
+        int idleCount = 0;
+        StringBuilder items = new StringBuilder();
+        int n = 0;
+        List<String> players = playerList();
+        for (String un : players) {
+            Store.User u = store.findUser(un);
+            if (u == null) {
+                continue;
+            }
+            Store.ResultRecord r = recByUser.get(u.username);
+            String state;
+            long elapsed;
+            int rank = 0;
+            if (r != null && (r.efficiencyReady || !r.correct)) {
+                // 跑完效率的，以及正确性就没过的，都算这一轮已经结束
+                state = "finished";
+                elapsed = r.codingSeconds;
+                rank = ranks.containsKey(u.username) ? ranks.get(u.username) : 0;
+                finishedCount++;
+            } else if (r != null) {
+                state = "judging";
+                elapsed = r.codingSeconds;
+                judgingCount++;
+            } else if (startTimes.containsKey(u.username)) {
+                state = "coding";
+                long st = startTimes.get(u.username);
+                elapsed = st > 0 ? Math.max(0, (nowMs - st) / 1000) : 0;
+                codingCount++;
+            } else {
+                state = "idle";
+                elapsed = 0;
+                idleCount++;
+            }
+            if (n++ > 0) {
+                items.append(',');
+            }
+            boolean online = isOnline(u.username);
+            items.append('{')
+                    .append(Json.inum("no", u.no)).append(',')
+                    .append(Json.str("username", u.username)).append(',')
+                    .append(Json.str("state", state)).append(',')
+                    .append(Json.bool("online", online)).append(',')
+                    .append(Json.bool("submitted", r != null)).append(',')
+                    .append(Json.inum("elapsed", elapsed)).append(',')
+                    .append(Json.inum("rank", rank)).append(',')
+                    .append(Json.num("score", r == null ? 0.0 : r.score)).append(',')
+                    .append(Json.num("baseScore", r != null && r.correct ? 60.0 : 0.0)).append(',')
+                    .append(Json.num("codingScore", r != null && r.correct
+                            ? ScoreCalculator.codingScoreSeconds(Store.codingSecondsOf(r)) : 0.0)).append(',')
+                    .append(Json.num("efficiencyScore", r == null ? 0.0 : r.efficiencyScore)).append(',')
+                    .append(Json.num("runMillis", r == null ? 0.0 : r.runMillis)).append(',')
+                    .append(Json.bool("correct", r != null && r.correct)).append(',')
+                    .append(Json.inum("caseOk", r == null ? 0 : r.caseOk)).append(',')
+                    .append(Json.inum("caseTotal", r == null ? 0 : r.caseTotal)).append(',')
+                    .append(Json.bool("efficiencyReady", r != null && r.efficiencyReady)).append(',')
+                    .append(Json.str("finishedAt", r == null || r.finishedAt == null ? "" : r.finishedAt)).append(',')
+                    .append(Json.str("detail", r == null || r.detail == null ? "" : watchDetailText(r.detail)))
+                    .append('}');
+        }
+        ok(ex, "{" + Json.inum("total", players.size()) + ","
+                + Json.inum("coding", codingCount) + ","
+                + Json.inum("judging", judgingCount) + ","
+                + Json.inum("finished", finishedCount) + ","
+                + Json.inum("idle", idleCount) + ","
+                + Json.esc("items") + ":[" + items + "]}");
+    }
+
+    /** 观众弹幕：需登录的观众身份；比赛进行中关闭，赛前与赛后开放 */
+    private static void watchDanmaku(HttpExchange ex) throws IOException {
+        if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) {
+            error(ex, 405, "只支持 POST");
+            return;
+        }
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!"viewer".equals(s.role)) {
+            error(ex, 403, "选手不能发弹幕，只能发快捷消息");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String text = cleanCommentText(f.getOrDefault("text", ""));
+        if (text.isEmpty()) {
+            error(ex, 400, "内容不能为空");
+            return;
+        }
+        String cs = contestStatus();
+        if ("running".equals(cs) || "countdown".equals(cs)) {
+            error(ex, 403, "比赛进行中，弹幕已关闭，比赛结束后开放");
+            return;
+        }
+        if (!speechAllowed(ex, s.username, text)) {
+            return;
+        }
+        if (promptBlockedWord(text) != null) {
+            error(ex, 400, "弹幕含有比赛提示内容，已拦截");
+            return;
+        }
+        long nowMs = System.currentTimeMillis();
+        if (tooFast(s.username, COMMENT_COOLDOWN_MS)) {
+            error(ex, 429, "发送过于频繁，请稍候几秒");
+            return;
+        }
+        String role = "player".equals(s.role) ? "student" : "viewer";
+        String who = "player".equals(s.role) ? s.username : ("观众" + s.no);
+        Store.Comment c = store.addComment(role, who, s.no, text, "danmaku");
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.esc("comment") + ":" + commentJson(c) + "}");
+    }
+
+    /** 统一清理发言内容：去换行、压空白、截断到上限 */
+    static String cleanCommentText(String raw) {
+        String text = (raw == null ? "" : raw).replace('\r', ' ').replace('\n', ' ').trim();
+        if (text.length() > COMMENT_MAX_LEN) {
+            text = text.substring(0, COMMENT_MAX_LEN);
+        }
+        return text;
+    }
+
+    static String tokenOf(HttpExchange ex) {
+        String token = ex.getRequestHeaders().getFirst("X-Token");
+        return token == null ? "" : token;
+    }
+
+    static boolean isAdmin(HttpExchange ex) {
+        String token = tokenOf(ex);
+        if (!adminTokens.contains(token)) {
+            return false;
+        }
+        // 被撤销管理员后，旧 token 不能继续用：每次都回查当前权限
+        String who = adminTokenUsers.get(token);
+        if (who == null) {
+            return false;
+        }
+        return "master".equals(who) || isAdminAccount(who);
+    }
+
+    static boolean isSuper(HttpExchange ex) {
+        return superTokens.contains(tokenOf(ex));
+    }
+
+    /** 后台数据类接口：管理员和总管都能看，只有「设置管理员」这一项留给总管 */
+    private static boolean isAdminOrSuper(HttpExchange ex) {
+        return isAdmin(ex) || isSuper(ex);
+    }
+
+    /** 选手专属动作的闸门：观众身份直接回 403 */
+    private static boolean requirePlayer(HttpExchange ex, Session s, String msg) throws IOException {
+        if ("player".equals(s.role)) {
+            return true;
+        }
+        error(ex, 403, msg);
+        return false;
+    }
+    /** 权限闸门：校验失败时已经写好 401 响应，调用方一句 if (!requireJudge(ex)) return; 即可 */
+    private static boolean requireAdmin(HttpExchange ex) throws IOException {
+        if (isAdmin(ex)) {
+            return true;
+        }
+        error(ex, 401, "没有权限");
+        return false;
+    }
+
+    private static boolean requireAdminOrSuper(HttpExchange ex) throws IOException {
+        if (isAdminOrSuper(ex)) {
+            return true;
+        }
+        error(ex, 401, "没有权限");
+        return false;
+    }
+
+    private static boolean requireJudge(HttpExchange ex) throws IOException {
+        if (isJudge(ex)) {
+            return true;
+        }
+        error(ex, 401, "没有裁判权限");
+        return false;
+    }
+
+    /** 最常见的一种成功响应 {"ok":true} */
+    static void okTrue(HttpExchange ex) throws IOException {
+        ok(ex, "{" + Json.bool("ok", true) + "}");
+    }
+
+    /** 口令统一要求 4~20 位，四处改口令都走这里 */
+    private static boolean validPass(String pass) {
+        return pass != null && pass.length() >= 4 && pass.length() <= 20;
+    }
+
+    /** 同一身份在冷却期内重复发言时返回 true */
+    private static boolean tooFast(String key, long cooldownMs) {
+        long now = System.currentTimeMillis();
+        Long last = lastCommentAt.get(key);
+        if (last != null && now - last < cooldownMs) {
+            return true;
+        }
+        lastCommentAt.put(key, now);
+        return false;
+    }
+
+    /** 从 query string 里取一个 long 参数，取不到就用默认值 */
+    static String query(HttpExchange ex, String key) {
+        String q = ex.getRequestURI().getQuery();
+        if (q == null) {
+            return "";
+        }
+        for (String kv : q.split("&")) {
+            int i = kv.indexOf('=');
+            if (i > 0 && key.equals(kv.substring(0, i))) {
+                try {
+                    return URLDecoder.decode(kv.substring(i + 1), "UTF-8");
+                } catch (Exception ignore) {
+                    return kv.substring(i + 1);
+                }
+            }
+        }
+        return "";
+    }
+
+    private static long queryLong(HttpExchange ex, String key, long def) {
+        String q = ex.getRequestURI().getQuery();
+        if (q == null) {
+            return def;
+        }
+        for (String kv : q.split("&")) {
+            int i = kv.indexOf('=');
+            if (i > 0 && key.equals(kv.substring(0, i))) {
+                try {
+                    return Long.parseLong(kv.substring(i + 1));
+                } catch (Exception ignore) {
+                    return def;
+                }
+            }
+        }
+        return def;
+    }
+
+    // ---------------- 赛事状态 / 权限 ----------------
+
+    /** 当前赛事状态：倒计时到点自动转进行中，全部选手完赛自动转已结束 */
+    private static String contestStatus() {
+        String s = store.state(K_CONTEST_STATUS, "idle");
+        if ("countdown".equals(s)) {
+            long end = store.stateLong(K_CONTEST_COUNTDOWN_END, 0L);
+            if (end > 0 && System.currentTimeMillis() >= end) {
+                try {
+                    store.setState(K_CONTEST_STATUS, "running");
+                    store.setState(K_CONTEST_START_AT, String.valueOf(end));
+                } catch (IOException ignore) {
+                }
+                // 裁判开赛后统一开始计时：没打开页面的选手也从这一刻起算
+                for (String un : playerList()) {
+                    if (!startTimes.containsKey(un)) {
+                        startTimes.put(un, end);
+                        try {
+                            store.setState("start." + un, String.valueOf(end));
+                        } catch (IOException ignore) {
+                        }
+                    }
+                }
+                return "running";
+            }
+        }
+        if ("running".equals(s) && allPlayersFinished()) {
+            try {
+                store.setState(K_CONTEST_STATUS, "finished");
+                store.setState(K_CONTEST_END_AT, String.valueOf(System.currentTimeMillis()));
+            } catch (IOException ignore) {
+            }
+            return "finished";
+        }
+        return s;
+    }
+
+    /** 报名名单：以选手身份登录过的人 */
+    static List<String> playerList() {
+        List<String> out = new ArrayList<>();
+        for (String k : store.keysWithPrefix("player.")) {
+            out.add(k.substring("player.".length()));
+        }
+        return out;
+    }
+
+    private static boolean allPlayersFinished() {
+        List<String> players = playerList();
+        if (players.isEmpty()) {
+            return false;
+        }
+        for (String un : players) {
+            if (store.getResult(un) == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static boolean isBanned(String username) {
+        return store.stateLong("ban." + username, 0L) > System.currentTimeMillis();
+    }
+
+    static long muteUntil(String username) {
+        return store.stateLong("mute." + username + ".until", 0L);
+    }
+
+    static long muteRemainMs(String username) {
+        return Math.max(0L, muteUntil(username) - System.currentTimeMillis());
+    }
+
+    /** 禁言 N 分钟：直接写 until 时间戳 */
+    private static void muteFor(String username, long minutes) throws IOException {
+        long ms = Math.max(1L, minutes) * 60_000L;
+        store.setState("mute." + username + ".until", String.valueOf(System.currentTimeMillis() + ms));
+    }
+
+    /** 解禁并清空违规档位，下次违规从 30 秒重新算 */
+    static void unmuteUser(String username) throws IOException {
+        store.removeState("mute." + username + ".until");
+        store.removeState("mute." + username + ".count");
+        store.removeState("mute." + username + ".last");
+    }
+
+    /** 后台表单里的禁言分钟数，缺省 30 分钟 */
+    private static long minutesOf(Map<String, String> f) {
+        try {
+            return Long.parseLong(f.getOrDefault("minutes", "30").trim());
+        } catch (Exception ignore) {
+            return 30L;
+        }
+    }
+
+    /** 表单字段取值并去掉首尾空白，省掉满屏的 getOrDefault + trim */
+    static String field(Map<String, String> f, String key) {
+        return f.getOrDefault(key, "").trim();
+    }
+    /** 命中违规词：累计次数并按档位禁言，返回本次禁言的毫秒数 */
+    static long punishViolation(String username) throws IOException {
+        long now = System.currentTimeMillis();
+        long lastAt = store.stateLong("mute." + username + ".last", 0L);
+        int count = (int) store.stateLong("mute." + username + ".count", 0);
+        // 24 小时内没有新违规，档位从头开始
+        if (lastAt > 0 && now - lastAt > MUTE_RESET_MS) {
+            count = 0;
+        }
+        count++;
+        long ms = MUTE_STEPS_MS[Math.min(count - 1, MUTE_STEPS_MS.length - 1)];
+        store.setState("mute." + username + ".count", String.valueOf(count));
+        store.setState("mute." + username + ".last", String.valueOf(now));
+        store.setState("mute." + username + ".until", String.valueOf(now + ms));
+        return ms;
+    }
+
+    private static String muteText(long ms) {
+        if (ms >= 86_400_000L * 365L * 5L) {
+            return "10 年";
+        }
+        if (ms >= 86_400_000L) {
+            return (ms / 86_400_000L) + " 天";
+        }
+        if (ms >= 3_600_000L) {
+            return (ms / 3_600_000L) + " 小时";
+        }
+        if (ms >= 60_000L) {
+            return (ms / 60_000L) + " 分钟";
+        }
+        return Math.max(1, ms / 1000L) + " 秒";
+    }
+
+    /** 发言闸门：封号 / 禁言 / 违规词，命中即回错误并结束本次请求 */
+    private static boolean speechAllowed(HttpExchange ex, String username, String text) throws IOException {
+        if (isBanned(username)) {
+            error(ex, 403, "该账号已被封禁");
+            return false;
+        }
+        long remain = muteRemainMs(username);
+        if (remain > 0) {
+            error(ex, 403, "账号处于禁言状态，还需等待 " + muteText(remain));
+            return false;
+        }
+        if (abuseBlockedWord(text) != null) {
+            long ms = punishViolation(username);
+            error(ex, 403, "内容含违规词，已按规则禁言 " + muteText(ms) + "，如有异议请联系管理员");
+            return false;
+        }
+        return true;
+    }
+
+    /** 赛事公共状态：所有端都靠它判断倒计时、弹幕开关、评论是否上锁 */
+    private static void contestApi(HttpExchange ex) throws IOException {
+        String st = contestStatus();
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.str("status", st)).append(',');
+        sb.append(Json.inum("serverNow", System.currentTimeMillis())).append(',');
+        sb.append(Json.inum("countdownEnd", store.stateLong(K_CONTEST_COUNTDOWN_END, 0L))).append(',');
+        sb.append(Json.inum("startAt", store.stateLong(K_CONTEST_START_AT, 0L))).append(',');
+        sb.append(Json.inum("endAt", store.stateLong(K_CONTEST_END_AT, 0L))).append(',');
+        List<String> players = playerList();
+        int fin = 0;
+        StringBuilder names = new StringBuilder();
+        StringBuilder doneNames = new StringBuilder();
+        int ni = 0;
+        for (String un : players) {
+            if (store.getResult(un) != null) {
+                fin++;
+                if (doneNames.length() > 0) {
+                    doneNames.append(',');
+                }
+                doneNames.append(Json.esc(un));
+            }
+            if (ni++ > 0) {
+                names.append(',');
+            }
+            names.append(Json.esc(un));
+        }
+        sb.append(Json.inum("players", players.size())).append(',');
+        sb.append(Json.inum("finishedPlayers", fin)).append(',');
+        sb.append(Json.esc("playerNames")).append(":[").append(names).append("],");
+        sb.append(Json.esc("finishedNames")).append(":[").append(doneNames).append("],");
+        // 比赛进行中，观众弹幕关闭；未开始与已结束都开放
+        sb.append(Json.bool("danmakuOpen", !"running".equals(st) && !"countdown".equals(st)));
+        sb.append('}');
+        ok(ex, sb.toString());
+    }
+
+    // ---------------- 账号口令 / 密保 ----------------
+
+    /** 学生密码：改过就用改过的，没改过还是统一的 123456 */
+    private static String passwordOf(String username) {
+        String p = store.state("pass." + username, "");
+        if (!p.isEmpty()) {
+            return p;
+        }
+        Store.User u = store.findUser(username);
+        return u == null ? "" : u.password;
+    }
+
+    /** 管理员口令：默认就是被授予权限的那个学号 */
+    private static String adminPassOf(String username) {
+        String p = store.state("adminpass." + username, "");
+        return p.isEmpty() ? username : p;
+    }
+
+    static boolean isAdminAccount(String username) {
+        return !store.state("admin." + username, "").isEmpty();
+    }
+
+    private static String judgePass() {
+        String p = store.state("judge.pass", "");
+        return p.isEmpty() ? JUDGE_PASS : p;
+    }
+
+    private static boolean hasSec(String username) {
+        return !store.state("sec." + username + ".q1", "").isEmpty()
+                && !store.state("sec." + username + ".a1", "").isEmpty();
+    }
+
+    /** 学生自己改密码；第一次改必须顺手把两道密保设上 */
+    private static void userPassChange(HttpExchange ex) throws IOException {
+        Map<String, String> f = form(ex);
+        String header = ex.getRequestHeaders().getFirst("X-Token");
+        Session s = header == null ? null : sessions.get(header);
+        String username;
+        if (s != null) {
+            username = s.username;
+        } else {
+            // 登录页也能改：直接给账号 + 原密码，验过就允许
+            username = field(f, "username");
+            Store.User u = store.findUser(username);
+            if (u == null) {
+                error(ex, 404, "没有这个账号");
+                return;
+            }
+        }
+        String oldPass = f.getOrDefault("oldPass", "").trim();
+        String newPass = f.getOrDefault("newPass", "").trim();
+        if (!passwordOf(username).equals(oldPass)) {
+            error(ex, 400, "原密码不对");
+            return;
+        }
+        if (!validPass(newPass)) {
+            error(ex, 400, "新密码请控制在 4 ~ 20 位");
+            return;
+        }
+        String q1 = cleanCommentText(f.getOrDefault("q1", ""));
+        String a1 = f.getOrDefault("a1", "").trim();
+        String q2 = cleanCommentText(f.getOrDefault("q2", ""));
+        String a2 = f.getOrDefault("a2", "").trim();
+        if (!hasSec(username)) {
+            if (q1.isEmpty() || a1.isEmpty() || q2.isEmpty() || a2.isEmpty()) {
+                error(ex, 400, "首次修改密码需要同时设置两道密保问题");
+                return;
+            }
+            if (q1.equals(q2)) {
+                error(ex, 400, "两道密保问题不能一样");
+                return;
+            }
+            store.setState("sec." + username + ".q1", q1);
+            store.setState("sec." + username + ".a1", a1);
+            store.setState("sec." + username + ".q2", q2);
+            store.setState("sec." + username + ".a2", a2);
+        }
+        store.setState("pass." + username, newPass);
+        ok(ex, "{" + Json.bool("ok", true) + "," + Json.bool("hasSec", true) + "}");
+    }
+
+    /** 当前账号的密保情况：只回问题，不回答案 */
+    private static void userSec(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder("{");
+        sb.append(Json.bool("hasSec", hasSec(s.username))).append(',');
+        sb.append(Json.str("q1", store.state("sec." + s.username + ".q1", ""))).append(',');
+        sb.append(Json.str("q2", store.state("sec." + s.username + ".q2", "")));
+        sb.append('}');
+        ok(ex, sb.toString());
+    }
+
+    /** 忘记密码第一步：按账号取出两道密保问题 */
+    private static void resetQuiz(HttpExchange ex) throws IOException {
+        String username = query(ex, "username");
+        Store.User u = store.findUser(username);
+        if (u == null) {
+            error(ex, 404, "没有这个账号");
+            return;
+        }
+        if (!hasSec(username)) {
+            error(ex, 400, "该账号还没设置密保，请联系管理员重置");
+            return;
+        }
+        ok(ex, "{" + Json.str("username", username) + ","
+                + Json.str("q1", store.state("sec." + username + ".q1", "")) + ","
+                + Json.str("q2", store.state("sec." + username + ".q2", "")) + "}");
+    }
+
+    /** 忘记密码第二步：两道密保答对就能换新密码 */
+    private static void resetPass(HttpExchange ex) throws IOException {
+        Map<String, String> f = form(ex);
+        String username = field(f, "username");
+        Store.User u = store.findUser(username);
+        if (u == null) {
+            error(ex, 404, "没有这个账号");
+            return;
+        }
+        if (!hasSec(username)) {
+            error(ex, 400, "该账号还没设置密保，请联系管理员重置");
+            return;
+        }
+        String a1 = f.getOrDefault("a1", "").trim();
+        String a2 = f.getOrDefault("a2", "").trim();
+        if (!store.state("sec." + username + ".a1", "").equals(a1)
+                || !store.state("sec." + username + ".a2", "").equals(a2)) {
+            error(ex, 400, "密保答案不对");
+            return;
+        }
+        String newPass = f.getOrDefault("newPass", "").trim();
+        if (!validPass(newPass)) {
+            error(ex, 400, "新密码请控制在 4 ~ 20 位");
+            return;
+        }
+        store.setState("pass." + username, newPass);
+        okTrue(ex);
+    }
+
+    /** 管理员改口令：输入原口令再输新口令 */
+    private static void adminPassChange(HttpExchange ex) throws IOException {
+        String token = ex.getRequestHeaders().getFirst("X-Token");
+        if (token == null || !adminTokens.contains(token)) {
+            error(ex, 401, "没有权限");
+            return;
+        }
+        String who = adminTokenUsers.getOrDefault(token, "master");
+        if ("master".equals(who)) {
+            error(ex, 400, "主管理员口令请改 start.bat 里的 ADMIN_PASS");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        if (!adminPassOf(who).equals(f.getOrDefault("oldPass", "").trim())) {
+            error(ex, 400, "原口令不对");
+            return;
+        }
+        String np = f.getOrDefault("newPass", "").trim();
+        if (!validPass(np)) {
+            error(ex, 400, "新口令请控制在 4 ~ 20 位");
+            return;
+        }
+        store.setState("adminpass." + who, np);
+        okTrue(ex);
+    }
+
+    // ---------------- 总管（开发者） ----------------
+
+    private static String superPass() {
+        String p = store.state("super.pass", "");
+        return p.isEmpty() ? SUPER_PASS : p;
+    }
+
+    /** 总管登录：账号 + 口令，跟学生账号、裁判口令都分开 */
+    private static void superLogin(HttpExchange ex) throws IOException {
+        Map<String, String> f = form(ex);
+        String user = field(f, "username");
+        String pass = f.getOrDefault("password", "").trim();
+        if (!SUPER_USER.equals(user) || !superPass().equals(pass)) {
+            error(ex, 401, "总管账号或口令不正确");
+            return;
+        }
+        String token = UUID.randomUUID().toString().replace("-", "");
+        superTokens.add(token);
+        ok(ex, "{" + Json.str("token", token) + "," + Json.str("role", "super")
+                + "," + Json.str("who", SUPER_USER) + "}");
+    }
+
+    /** 总管改自己的口令 */
+    private static void superPassChange(HttpExchange ex) throws IOException {
+        if (!isSuper(ex)) {
+            error(ex, 401, "没有总管权限");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        if (!superPass().equals(f.getOrDefault("oldPass", "").trim())) {
+            error(ex, 400, "原口令不对");
+            return;
+        }
+        String np = f.getOrDefault("newPass", "").trim();
+        if (!validPass(np)) {
+            error(ex, 400, "新口令请控制在 4 ~ 20 位");
+            return;
+        }
+        store.setState("super.pass", np);
+        okTrue(ex);
+    }
+
+    /**
+     * 裁判 / 总管发言：发到全局讨论区，也可以发一条弹幕。
+     * 身份直接由 token 决定，所以前端伪造不了头衔。
+     */
+    private static void staffComment(HttpExchange ex) throws IOException {
+        String token = ex.getRequestHeaders().getFirst("X-Token");
+        String role;
+        String who;
+        if (token != null && judgeTokens.contains(token)) {
+            role = "judge";
+            who = "裁判";
+        } else if (token != null && superTokens.contains(token)) {
+            role = "super";
+            who = "总管";
+        } else {
+            error(ex, 401, "没有权限");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String kind = f.getOrDefault("kind", "comment").trim();
+        if (!"danmaku".equals(kind)) {
+            kind = "comment";
+        }
+        String text = cleanCommentText(f.getOrDefault("text", ""));
+        if (text.isEmpty()) {
+            error(ex, 400, "内容不能为空");
+            return;
+        }
+        if (text.length() > COMMENT_MAX_LEN) {
+            error(ex, 400, "内容过长");
+            return;
+        }
+        if ("danmaku".equals(kind)) {
+            String st = contestStatus();
+            if ("running".equals(st) || "countdown".equals(st)) {
+                error(ex, 400, "比赛进行中，弹幕通道暂时关闭");
+                return;
+            }
+            if (promptBlockedWord(text) != null) {
+                error(ex, 400, "弹幕含有比赛提示内容，已拦截");
+                return;
+            }
+        }
+        long nowMs = System.currentTimeMillis();
+        if (tooFast("staff:" + role, COMMENT_COOLDOWN_MS)) {
+            error(ex, 429, "发送过于频繁，请稍候几秒");
+            return;
+        }
+        Store.Comment c = store.addComment(role, who, 0, text, kind);
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.esc("comment") + ":" + commentJson(c) + "}");
+    }
+
+    // ---------------- 裁判 ----------------
+
+    private static void judgeLogin(HttpExchange ex) throws IOException {
+        Map<String, String> f = form(ex);
+        String pass = f.getOrDefault("password", "").trim();
+        String ju = judgeUser();
+        if (ju.isEmpty()) {
+            error(ex, 403, "还没有指定裁判，请总管在总控台指定一位同学");
+            return;
+        }
+        if (!judgePass().equals(pass)) {
+            error(ex, 401, "裁判口令不正确");
+            return;
+        }
+        String token = UUID.randomUUID().toString().replace("-", "");
+        judgeTokens.add(token);
+        Store.User u = store.findUser(ju);
+        String who = u == null ? ju : ("选手" + String.format("%02d", u.no));
+        ok(ex, "{" + Json.str("token", token) + "," + Json.str("role", "judge")
+                + "," + Json.str("username", ju) + "," + Json.str("who", who) + "}");
+    }
+
+    /** 当前被指定的裁判学号；总管设置，全平台只有一个，避免两个裁判同时开赛打架 */
+    static String judgeUser() {
+        return store.state("judge.user", "");
+    }
+
+    /** 裁判自己改口令：输入原口令 + 新口令 */
+    private static void judgePassChange(HttpExchange ex) throws IOException {
+        if (!requireJudge(ex)) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        if (!judgePass().equals(f.getOrDefault("oldPass", "").trim())) {
+            error(ex, 400, "原口令不对");
+            return;
+        }
+        String np = f.getOrDefault("newPass", "").trim();
+        if (!validPass(np)) {
+            error(ex, 400, "新口令请控制在 4 ~ 20 位");
+            return;
+        }
+        store.setState("judge.pass", np);
+        okTrue(ex);
+    }
+
+    /**
+     * 裁判判罚：只终止这一个选手的本场作答，成绩直接记 0 分，
+     * 违规事由由裁判自己填写，跟着成绩一起留档。
+     */
+    private static void judgeViolate(HttpExchange ex) throws IOException {
+        // 判违规是裁判与总管的权限；管理员只能禁言、举报，不能给选手记 0 分
+        if (!isJudge(ex) && !isSuper(ex)) {
+            error(ex, 401, "没有裁判权限");
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String un = field(f, "username");
+        String note = cleanCommentText(f.getOrDefault("note", ""));
+        Store.User u = store.findUser(un);
+        if (u == null) {
+            error(ex, 404, "没有这个账号");
+            return;
+        }
+        if (note.isEmpty()) {
+            error(ex, 400, "请填写违规事由");
+            return;
+        }
+        if (note.length() > 60) {
+            note = note.substring(0, 60);
+        }
+        penalizeViolation(un, note, "裁判判罚违规");
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.str("username", un) + ","
+                + Json.str("note", note) + "}");
+    }
+
+    /** 判违规的落盘动作：终止本场、记 0 分、留档事由。裁判直判与举报核实共用 */
+    static void penalizeViolation(String un, String note, String scene) throws IOException {
+        Store.User u = store.findUser(un);
+        if (u == null) {
+            return;
+        }
+        // 判罚前先把已有成绩存一份快照：申诉通过时可以还原，
+        // 否则「先交卷再被判违规」的人零分会永久生效，申诉等于没有补救。
+        Store.ResultRecord prev = store.getResult(un);
+        if (prev != null && (prev.correct || prev.score > 0)) {
+            saveViolationSnapshot(un, prev);
+        }
+        long now = System.currentTimeMillis();
+        Long st = startTimes.get(un);
+        long startMs = st == null ? 0L : st;
+        long sec = startMs == 0L ? 0L : Math.max(0L, (now - startMs) / 1000L);
+
+        Store.ResultRecord r = new Store.ResultRecord();
+        r.username = un;
+        r.no = u.no;
+        r.score = 0.0;
+        r.correct = false;
+        r.codingSeconds = sec;
+        r.codingMinutes = sec / 60L;
+        r.caseTotal = JudgeEngine.correctnessCaseCount();
+        r.caseOk = 0;
+        r.efficiencyReady = false;
+        r.efficiencyScore = 0.0;
+        r.runMillis = 0.0;
+        r.finishedAt = Store.now();
+        r.codeSnapshot = latestCode(un);
+        r.detail = scene + "，本场成绩记 0 分；违规事由：" + note + ";";
+        store.saveResult(r);
+        startTimes.remove(un);
+        store.removeState("start." + un);
+        store.setState("violation." + un, note);
+        Session ss = sessionOf(un);
+        if (ss != null) {
+            ss.finished = true;
+        }
+    }
+
+    /** 判罚前成绩快照：整行压成 TSV，Base64 后放进状态表，申诉通过时原样写回 */
+    static void saveViolationSnapshot(String un, Store.ResultRecord r) throws IOException {
+        String line = String.join("\t",
+                r.username, String.valueOf(r.no),
+                String.valueOf(r.score), String.valueOf(r.correct),
+                String.valueOf(r.codingMinutes), String.valueOf(r.efficiencyScore),
+                String.valueOf(r.caseOk), String.valueOf(r.caseTotal),
+                oneLine(r.finishedAt), oneLine(r.detail),
+                String.valueOf(r.efficiencyReady), oneLine(r.codeSnapshot),
+                String.valueOf(r.codingSeconds), String.valueOf(r.runMillis));
+        String b64 = Base64.getEncoder().encodeToString(line.getBytes(StandardCharsets.UTF_8));
+        store.setState("violprev." + un, b64);
+    }
+
+    /** 申诉通过时还原判罚前的成绩；没有快照（判罚前就没成绩）返回 false */
+    static boolean restoreViolationSnapshot(String un) throws IOException {
+        String b64 = store.state("violprev." + un, "");
+        if (b64.isEmpty()) {
+            return false;
+        }
+        String[] p = new String(Base64.getDecoder().decode(b64), StandardCharsets.UTF_8).split("\t", -1);
+        store.removeState("violprev." + un);
+        if (p.length < 14) {
+            return false;
+        }
+        Store.ResultRecord r = new Store.ResultRecord();
+        r.username = p[0];
+        r.no = (int) numOr(p[1], 0);
+        r.score = numOr(p[2], 0);
+        r.correct = Boolean.parseBoolean(p[3]);
+        r.codingMinutes = numOr(p[4], 0);
+        r.efficiencyScore = numOr(p[5], 0);
+        r.caseOk = (int) numOr(p[6], 0);
+        r.caseTotal = (int) numOr(p[7], 0);
+        r.finishedAt = p[8];
+        r.detail = p[9];
+        r.efficiencyReady = Boolean.parseBoolean(p[10]);
+        r.codeSnapshot = p[11];
+        r.codingSeconds = (long) numOr(p[12], 0);
+        r.runMillis = numOr(p[13], 0);
+        store.saveResult(r);
+        return true;
+    }
+
+    /** 快照里不能带换行/制表符，否则一行记录会被拆散 */
+    private static String oneLine(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.replace('\t', ' ').replace('\r', ' ').replace('\n', ' ');
+    }
+
+    private static double numOr(String s, double def) {
+        try {
+            return Double.parseDouble(s.trim());
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    /** 裁判可以禁言 / 解禁；设管理员是总管的权限，裁判不再涉及 */
+    private static void judgeUserOp(HttpExchange ex) throws IOException {
+        if (!requireJudge(ex)) {
+            return;
+        }
+        // 权限重排后裁判不再管禁言：禁言归管理员，裁判只负责开赛/结束与判违规
+        error(ex, 403, "裁判没有禁言权限，禁言由管理员处理");
+    }
+
+    static boolean isJudge(HttpExchange ex) {
+        String token = ex.getRequestHeaders().getFirst("X-Token");
+        return token != null && judgeTokens.contains(token);
+    }
+
+    /** 开启比赛：清掉上一场成绩与内存计时，进入 10 秒倒计时 */
+    private static void judgeStartContest(HttpExchange ex) throws IOException {
+        if (!requireJudge(ex)) {
+            return;
+        }
+        // 开赛前先把上一轮成绩另存一份，不直接抹掉历史记录
+        try {
+            Path old = Paths.get("data", "results.tsv");
+            if (Files.exists(old)) {
+                Files.copy(old, Paths.get("data", "results.backup-" + System.currentTimeMillis() + ".tsv"));
+            }
+        } catch (Exception ignore) {
+        }
+        store.clearAll();
+        startTimes.clear();
+        // 上一场的违规标记与判罚快照都属于上一场，开赛时一并清掉，
+        // 否则新一场申诉可能把早就过期的备份成绩又写回来。
+        for (String key : store.keysWithPrefix("violprev.")) {
+            store.removeState(key);
+        }
+        for (String key : store.keysWithPrefix("violation.")) {
+            store.removeState(key);
+        }
+        for (String key : store.keysWithPrefix("start.")) {
+            store.removeState(key);
+        }
+        liveCodes.clear();
+        quickMsgs.clear();
+        efficiencyQueued.clear();
+        for (Session s : sessions.values()) {
+            s.startMillis = 0L;
+            s.finished = false;
+            s.judging = false;
+        }
+        long now = System.currentTimeMillis();
+        store.setState(K_CONTEST_STATUS, "countdown");
+        store.setState(K_CONTEST_COUNTDOWN_END, String.valueOf(now + CONTEST_COUNTDOWN_MS));
+        store.setState(K_CONTEST_START_AT, "0");
+        store.setState(K_CONTEST_END_AT, "0");
+        ok(ex, "{" + Json.bool("ok", true) + ","
+                + Json.inum("countdownEnd", now + CONTEST_COUNTDOWN_MS) + "}");
+    }
+
+    /** 强制结束：所有未交卷选手按当前代码提交（没写过代码的记白卷） */
+    private static void judgeForceEnd(HttpExchange ex) throws IOException {
+        if (!requireJudge(ex)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        store.setState(K_CONTEST_STATUS, "finished");
+        store.setState(K_CONTEST_END_AT, String.valueOf(now));
+        final List<String> players = playerList();
+        final String detailMsg = "裁判强制结束，选手未完赛，按当前代码收卷";
+        for (final String un : players) {
+            if (store.getResult(un) != null) {
+                continue;
+            }
+            final String code = latestCode(un);
+            final Store.User u = store.findUser(un);
+            final int no = u == null ? 0 : u.no;
+            final long startMs = startTimes.containsKey(un) ? startTimes.get(un) : 0L;
+            FORCE_POOL.submit(() -> {
+                try {
+                    long seconds = startMs == 0L ? 0L : Math.max(0L, (System.currentTimeMillis() - startMs) / 1000L);
+                    Store.ResultRecord r = new Store.ResultRecord();
+                    r.username = un;
+                    r.no = no;
+                    r.codingMinutes = seconds / 60L;
+                    r.codingSeconds = seconds;
+                    r.finishedAt = Store.now();
+                    r.caseTotal = JudgeEngine.correctnessCaseCount();
+                    r.efficiencyReady = false;
+                    r.efficiencyScore = 0.0;
+                    if (code == null || code.trim().isEmpty()) {
+                        r.score = 0.0;
+                        r.correct = false;
+                        r.caseOk = 0;
+                        r.detail = "裁判强制结束，未编写代码，按白卷处理;";
+                    } else {
+                        JudgeEngine engine = new JudgeEngine();
+                        JudgeEngine.Outcome out = engine.judgeCorrectOnly(code, seconds);
+                        r.score = out.score;
+                        r.correct = out.correct;
+                        r.caseOk = out.caseOk;
+                        r.caseTotal = out.caseTotal;
+                        r.detail = out.detail + " " + detailMsg + ";";
+                        r.codeSnapshot = code;
+                    }
+                    // 收卷排队期间选手可能已经自己交卷了；已有成绩就不再覆盖
+                    synchronized (store) {
+                        if (store.getResult(un) != null) {
+                            return;
+                        }
+                        store.saveResult(r);
+                    }
+                    if (r.correct) {
+                        enqueueEfficiency(un);
+                    }
+                    Session ss = sessionOf(un);
+                    if (ss != null) {
+                        ss.finished = true;
+                    }
+                } catch (Throwable t) {
+                    System.err.println("强制收卷失败 " + un + ":" + shortError(t));
+                }
+            });
+        }
+        ok(ex, "{" + Json.bool("ok", true) + "," + Json.inum("total", players.size()) + "}");
+    }
+
+    /** 踢掉某账号的所有在线会话（封号、删成绩时用） */
+    static void killSessionsOf(String username) {
+        for (Map.Entry<String, Session> e : sessions.entrySet()) {
+            Session s = e.getValue();
+            if (s.username.equals(username) && sessions.remove(e.getKey(), s)) {
+                activeToken.remove(s.username + "#" + s.role, e.getKey());
+            }
+        }
+        lastSeen.remove(username);
+    }
+
+    /** 找到某账号当前的选手会话（强制收卷后要把它标记成已交卷） */
+    private static Session sessionOf(String username) {
+        for (Session s : sessions.values()) {
+            if (s.username.equals(username) && "player".equals(s.role)) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    /** 最新一版代码快照，没有就返回 null */
+    private static String latestCode(String username) {
+        List<CodeSnap> list = liveCodes.get(username);
+        if (list == null) {
+            return null;
+        }
+        synchronized (list) {
+            return list.isEmpty() ? null : list.get(list.size() - 1).code;
+        }
+    }
+
+    // ---------------- 选手快捷消息 ----------------
+
+    /** 四句固定的快捷消息，选手只能从这几句里选 */
+    private static final String[] QUICK_TEXTS = {
+        "赛出风格", "友谊第一", "享受比赛", "勇夺第二吧各位",
+    };
+
+    private static void quickApi(HttpExchange ex) throws IOException {
+        if ("GET".equalsIgnoreCase(ex.getRequestMethod())) {
+            StringBuilder sb = new StringBuilder("{\"serverNow\":").append(System.currentTimeMillis()).append(',');
+            sb.append(Json.esc("items")).append(":[");
+            int i = 0;
+            long now = System.currentTimeMillis();
+            for (Object[] q : quickMsgs.values()) {
+                long at = (Long) q[1];
+                if (now - at > QUICK_LIVE_MS) {
+                    continue;
+                }
+                if (i++ > 0) {
+                    sb.append(',');
+                }
+                sb.append('{').append(Json.inum("id", (Integer) q[0])).append(',')
+                        .append(Json.inum("no", (Integer) q[2])).append(',')
+                        .append(Json.str("text", (String) q[3])).append(',')
+                        .append(Json.inum("at", at)).append('}');
+            }
+            sb.append("]}");
+            ok(ex, sb.toString());
+            return;
+        }
+
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        if (!requirePlayer(ex, s, "只有选手可以发送快捷消息")) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String text = f.getOrDefault("text", "").trim();
+        boolean allowed = false;
+        for (String t : QUICK_TEXTS) {
+            if (t.equals(text)) {
+                allowed = true;
+                break;
+            }
+        }
+        if (!allowed) {
+            error(ex, 400, "快捷消息不在可选范围内");
+            return;
+        }
+        int id = quickSeq.incrementAndGet();
+        quickMsgs.put(s.username + "#" + id, new Object[] {id, System.currentTimeMillis(), s.no, text});
+        if (quickMsgs.size() > QUICK_KEEP) {
+            long now = System.currentTimeMillis();
+            quickMsgs.entrySet().removeIf(e -> now - (Long) e.getValue()[1] > QUICK_LIVE_MS);
+        }
+        ok(ex, "{\"ok\":true,\"id\":" + id + "}");
+    }
+
+    // ---------------- 举报 / 申诉 ----------------
+
+    /** 头像菜单里的「修改ID」：只改显示昵称，65 个学号账户名不可改 */
+    private static void userNick(HttpExchange ex) throws IOException {
+        Session s = auth(ex);
+        if (s == null) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String nick = cleanCommentText(f.getOrDefault("nick", ""));
+        if (nick.length() > 10) {
+            nick = nick.substring(0, 10);
+        }
+        if (nick.isEmpty()) {
+            store.removeState("nick." + s.username);
+        } else {
+            store.setState("nick." + s.username, nick);
+        }
+        okTrue(ex);
+    }
+
+    // ---------------- 管理员：账号权限 ----------------
+
+    private static void adminUsers(HttpExchange ex) throws IOException {
+        if (!isAdminOrSuper(ex) && !isJudge(ex)) {
+            error(ex, 401, "没有权限");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        StringBuilder sb = new StringBuilder("{\"items\":[");
+        int i = 0;
+        for (Store.User u : store.allUsers()) {
+            boolean isJudge = u.username.equals(judgeUser());
+            String role = isJudge ? "judge"
+                    : (store.state("admin." + u.username, "").isEmpty() ? "student" : "admin");
+            long banUntil = store.stateLong("ban." + u.username, 0L);
+            boolean banned = banUntil > now;
+            long mute = muteRemainMs(u.username);
+            boolean player = !store.state("player." + u.username, "").isEmpty();
+            boolean finished = store.getResult(u.username) != null;
+            if (i++ > 0) {
+                sb.append(',');
+            }
+            sb.append('{').append(Json.inum("no", u.no)).append(',')
+                    .append(Json.str("username", u.username)).append(',')
+                    .append(Json.str("role", role)).append(',')
+                    .append(Json.bool("judge", isJudge)).append(',')
+                    .append(Json.bool("online", isOnline(u.username))).append(',')
+                    .append(Json.bool("player", player)).append(',')
+                    .append(Json.bool("finished", finished)).append(',')
+                    .append(Json.bool("banned", banned)).append(',')
+                    .append(Json.str("banReason", banned ? store.state("banreason." + u.username, "") : "")).append(',')
+                    .append(Json.inum("muteUntil", mute > 0 ? muteUntil(u.username) : 0L)).append(',')
+                    .append(Json.inum("violations", (long) store.stateLong("mute." + u.username + ".count", 0)))
+                    .append('}');
+        }
+        sb.append("]}");
+        ok(ex, sb.toString());
+    }
+
+    private static void adminUserOp(HttpExchange ex) throws IOException {
+        if (!requireAdminOrSuper(ex)) {
+            return;
+        }
+        Map<String, String> f = form(ex);
+        String target = field(f, "username");
+        String action = field(f, "action");
+        Store.User u = store.findUser(target);
+        if (u == null) {
+            error(ex, 404, "没有这个账号");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        switch (action) {
+            case "resetPass":
+                // 重置学生密码只给总管：留空即回到初始密码 123456
+                if (!isSuper(ex)) {
+                    error(ex, 403, "只有总管才能重置密码");
+                    return;
+                }
+                String np = field(f, "newPass");
+                if (np.isEmpty()) {
+                    store.removeState("pass." + target);
+                } else {
+                    if (!validPass(np)) {
+                        error(ex, 400, "新密码要 4 ~ 20 位");
+                        return;
+                    }
+                    store.setState("pass." + target, np);
+                }
+                break;
+            case "grantJudge":
+            case "revokeJudge":
+                // 裁判 = 同学里的高级管理员，全平台只有一个，只能由总管指定或撤销
+                if (!isSuper(ex)) {
+                    error(ex, 403, "只有总管才能设置裁判");
+                    return;
+                }
+                if ("grantJudge".equals(action)) {
+                    store.setState("judge.user", target);
+                    // 没单独改过裁判口令时，默认就用这名同学的学号
+                    store.removeState("judge.pass");
+                } else {
+                    if (!target.equals(judgeUser())) {
+                        error(ex, 400, "这位同学不是当前裁判");
+                        return;
+                    }
+                    store.removeState("judge.user");
+                }
+                // 换裁判或撤裁判，旧口令签发的裁判令牌立即作废
+                judgeTokens.clear();
+                break;
+            case "resetStaffPass":
+                // 重置管理员 / 裁判的控制台口令（与学生登录密码是两套）
+                if (!isSuper(ex)) {
+                    error(ex, 403, "只有总管才能重置控制台口令");
+                    return;
+                }
+                String kind = field(f, "kind");
+                String newPass2 = field(f, "newPass");
+                if (!newPass2.isEmpty() && !validPass(newPass2)) {
+                    error(ex, 400, "新口令要 4 ~ 20 位");
+                    return;
+                }
+                if ("admin".equals(kind)) {
+                    if (!isAdminAccount(target)) {
+                        error(ex, 400, "这位同学不是管理员");
+                        return;
+                    }
+                    resetStaffPassword("adminpass." + target, newPass2);
+                    adminTokens.removeIf(t -> target.equals(adminTokenUsers.get(t)));
+                    adminTokenUsers.entrySet().removeIf(e -> target.equals(e.getValue()));
+                } else if ("judge".equals(kind)) {
+                    if (!target.equals(judgeUser())) {
+                        error(ex, 400, "这位同学不是当前裁判");
+                        return;
+                    }
+                    resetStaffPassword("judge.pass", newPass2);
+                    judgeTokens.clear();
+                } else {
+                    error(ex, 400, "未知的控制台身份");
+                    return;
+                }
+                break;
+            case "grantAdmin":
+            case "revokeAdmin":
+                // 管理员身份只能由总管设置，管理员自己和裁判都没有这个按钮
+                if (!isSuper(ex)) {
+                    error(ex, 403, "只有总管才能设置管理员");
+                    return;
+                }
+                if ("grantAdmin".equals(action)) {
+                    store.setState("admin." + target, "1");
+                    // 新授予的管理员，口令默认就是他的学号
+                    store.removeState("adminpass." + target);
+                } else {
+                    store.removeState("admin." + target);
+                    store.removeState("adminpass." + target);
+                    // 撤销后立刻作废已发放的后台 token，不能等他自然过期
+                    adminTokens.removeIf(t -> target.equals(adminTokenUsers.get(t)));
+                    adminTokenUsers.entrySet().removeIf(e -> target.equals(e.getValue()));
+                }
+                break;
+            case "mute":
+            case "unmute":
+                // 禁言归管理员：管理员可以管观众和选手，但不能动管理员/裁判
+                if (!isSuper(ex) && (isAdminAccount(target) || target.equals(judgeUser()))) {
+                    error(ex, 403, "管理员不能处理管理员或裁判");
+                    return;
+                }
+                if ("mute".equals(action)) {
+                    muteFor(target, minutesOf(f));
+                } else {
+                    unmuteUser(target);
+                }
+                break;
+            case "ban":
+                // 封号只有总管能做；封掉管理员/裁判时同时降级成观众，不能再参赛
+                if (!isSuper(ex)) {
+                    error(ex, 403, "只有总管才能封号");
+                    return;
+                }
+                store.setState("ban." + target, String.valueOf(now + 86_400_000L * 3650L));
+                String banWhy = cleanCommentText(f.getOrDefault("reason", ""));
+                if (banWhy.isEmpty()) {
+                    banWhy = "总管手动封号";
+                }
+                store.setState("banreason." + target, banWhy.length() > 60 ? banWhy.substring(0, 60) : banWhy);
+                String banCase = field(f, "caseId");
+                if (!banCase.isEmpty()) {
+                    store.setState("bancase." + target, banCase);
+                }
+                demoteStaffOnBan(target);
+                killSessionsOf(target);
+                break;
+            case "unban":
+                if (!isSuper(ex)) {
+                    error(ex, 403, "只有总管才能解封");
+                    return;
+                }
+                store.removeState("ban." + target);
+                store.removeState("banreason." + target);
+                store.removeState("bancase." + target);
+                break;
+                default:
+                error(ex, 400, "未知操作");
+                return;
+        }
+        okTrue(ex);
+    }
+
+    /**
+     * 封管理员或裁判之后，把他从「工作人员 + 选手」降成「观众」：
+     * 撤销后台身份与口令、清掉报名，之后只能以观众身份登录观赛。
+     */
+    static void demoteStaffOnBan(String target) throws IOException {
+        if (isAdminAccount(target)) {
+            store.removeState("admin." + target);
+            store.removeState("adminpass." + target);
+            adminTokens.removeIf(t -> target.equals(adminTokenUsers.get(t)));
+            adminTokenUsers.entrySet().removeIf(e -> target.equals(e.getValue()));
+        }
+        if (target.equals(judgeUser())) {
+            store.removeState("judge.user");
+            store.removeState("judge.pass");
+            judgeTokens.clear();
+        }
+        store.removeState("player." + target);
+        startTimes.remove(target);
+        store.removeState("start." + target);
+        store.removeState("violation." + target);
+    }
+
+    /** 重置控制台口令：留空就清掉，回到该身份的默认口令 */
+    private static void resetStaffPassword(String key, String newPass) throws IOException {
+        if (newPass.isEmpty()) {
+            store.removeState(key);
+        } else {
+            store.setState(key, newPass);
+        }
+    }
+
+    /** 异常压成一行短说明，塞进 detail 里方便老师判断是哪种失败 */
+    private static String shortError(Throwable t) {
+        String msg = t.getClass().getSimpleName();
+        if (t.getMessage() != null) {
+            msg += ": " + t.getMessage().replace('\n', ' ').replace('\r', ' ');
+        }
+        return msg.length() > 100 ? msg.substring(0, 100) + "…" : msg;
+    }
+
+    private static String resultJson(Store.ResultRecord r) {
+        // codingSeconds 是交卷那一刻定格的计时秒数；编码分、基础分、运行耗时都直接给出，
+        // 前端与后台只需要展示，不重复计算同一套规则。
+        double codingScore = r.correct ? ScoreCalculator.codingScoreSeconds(Store.codingSecondsOf(r)) : 0.0;
+        return "{" + Json.inum("no", r.no) + ","
+                + Json.str("username", r.username) + ","
+                + Json.num("score", r.score) + ","
+                + Json.bool("correct", r.correct) + ","
+                + Json.num("codingMinutes", r.codingMinutes) + ","
+                + Json.inum("codingSeconds", r.codingSeconds) + ","
+                + Json.num("codingScore", codingScore) + ","
+                + Json.num("baseScore", r.correct ? 60.0 : 0.0) + ","
+                + Json.num("efficiencyScore", r.efficiencyScore) + ","
+                + Json.num("runMillis", r.runMillis) + ","
+                + Json.bool("efficiencyReady", r.efficiencyReady) + ","
+                + Json.inum("caseOk", r.caseOk) + ","
+                + Json.inum("caseTotal", r.caseTotal) + ","
+                + Json.str("finishedAt", r.finishedAt) + ","
+                + Json.str("detail", r.detail) + "}";
+    }
+
+    private static long elapsedSeconds(Session s) {
+        if (s.startMillis == 0) {
+            return 0;
+        }
+        return Math.max(0, (System.currentTimeMillis() - s.startMillis) / 1000);
+    }
+
+    static Session auth(HttpExchange ex) throws IOException {
+        String token = ex.getRequestHeaders().getFirst("X-Token");
+        if (token == null) {
+            token = "";
+        }
+        Session s = sessions.get(token);
+        if (s == null) {
+            Long killedAt = killedTokens.get(token);
+            if (killedAt != null) {
+                // 这个 token 是被同一账号的新登录顶下来的：前端要弹「账号已在别处登录」，
+                // 不能只说一句「登录过期」让人以为是网络问题。
+                errorCode(ex, 401, "KICKED", "该账号已在其他终端登录，本次会话已下线");
+            } else {
+                error(ex, 401, "登录已失效（服务可能重启过），请重新登录");
+            }
+            return null;
+        }
+        cleanKilledTokens();
+        // 封号不再踢掉会话：封号账号会被强制降为观众，只能观赛与申诉，
+        // 发言和参赛另有 isBanned 拦截，不需要在鉴权这一步直接断掉。
+        sweepIdleSessions();
+        lastSeen.put(s.username, System.currentTimeMillis());
+        s.lastSeenMillis = System.currentTimeMillis();
+        return s;
+    }
+
+    /**
+     * 回收长期没人用的会话。
+     * 以前 sessions 只增不减（被顶号、关页面、换设备都留着），
+     * 一学期跑下来会缓慢涨内存；这里按最后活动时间清掉 12 小时没动静的。
+     */
+    private static void sweepIdleSessions() {
+        long now = System.currentTimeMillis();
+        if (now - lastSessionSweep < 5 * 60 * 1000L) {
+            return;
+        }
+        lastSessionSweep = now;
+        for (Map.Entry<String, Session> e : sessions.entrySet()) {
+            Session s = e.getValue();
+            if (s.lastSeenMillis > 0 && now - s.lastSeenMillis > SESSION_IDLE_MS) {
+                if (sessions.remove(e.getKey(), s)) {
+                    activeToken.remove(s.username + "#" + s.role, e.getKey());
+                }
+            }
+        }
+    }
+
+    /**
+     * 在线判定：一分钟内有过带令牌请求就算在线。
+     * 选手端/观赛端都是秒级轮询，关掉窗口或断网后自然掉线，不会像以前那样
+     * 只看 activeToken 导致所有登录过的人永远显示在线。
+     */
+    static boolean isOnline(String username) {
+        Long t = lastSeen.get(username);
+        return t != null && System.currentTimeMillis() - t <= ONLINE_WINDOW_MS;
+    }
+
+    /** 顺手清理过期的失效标记，别让 killedTokens 无限增长 */
+    private static void cleanKilledTokens() {
+        long now = System.currentTimeMillis();
+        if (now - lastKilledClean < 5 * 60 * 1000L) {
+            return;
+        }
+        lastKilledClean = now;
+        killedTokens.entrySet().removeIf(e -> now - e.getValue() > KILLED_TOKEN_TTL_MS);
+    }
+
+    private interface Handler {
+        void handle(HttpExchange ex) throws IOException;
+    }
+
+    private static com.sun.net.httpserver.HttpHandler h(Handler inner) {
+        return ex -> {
+            try {
+                if ("OPTIONS".equals(ex.getRequestMethod())) {
+                    cors(ex);
+                    ex.sendResponseHeaders(204, -1);
+                    ex.close();
+                    return;
+                }
+                inner.handle(ex);
+            } catch (Exception e) {
+                try {
+                    error(ex, 500, "服务异常：" + e.getMessage());
+                } catch (Exception ignored) {
+                }
+            } finally {
+                ex.close();
+            }
+        };
+    }
+
+    static void ok(HttpExchange ex, String json) throws IOException {
+        cors(ex);
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+        ex.sendResponseHeaders(200, bytes.length);
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(bytes);
+        }
+    }
+
+    static void error(HttpExchange ex, int code, String msg) throws IOException {
+        cors(ex);
+        byte[] bytes = ("{" + Json.str("error", msg) + "}").getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+        ex.sendResponseHeaders(code, bytes.length);
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(bytes);
+        }
+    }
+
+    /** 带业务码的错误，前端靠 code 区分「被顶号」和「普通登录过期」 */
+    static void errorCode(HttpExchange ex, int status, String bizCode, String msg) throws IOException {
+        cors(ex);
+        byte[] bytes = ("{" + Json.str("error", msg) + "," + Json.str("code", bizCode) + "}")
+                .getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+        ex.sendResponseHeaders(status, bytes.length);
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(bytes);
+        }
+    }
+
+    private static void cors(HttpExchange ex) {
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.getResponseHeaders().set("Access-Control-Allow-Headers", "X-Token, Content-Type");
+        ex.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    }
+
+    static Map<String, String> form(HttpExchange ex) throws IOException {
+        String body = new String(readAllBytes(ex.getRequestBody()), "UTF-8");
+        Map<String, String> map = new HashMap<>();
+        if (body.isEmpty()) {
+            return map;
+        }
+        for (String pair : body.split("&")) {
+            int i = pair.indexOf('=');
+            if (i < 0) {
+                continue;
+            }
+            String k = java.net.URLDecoder.decode(pair.substring(0, i), "UTF-8");
+            String v = java.net.URLDecoder.decode(pair.substring(i + 1), "UTF-8");
+            map.put(k, v);
+        }
+        return map;
+    }
+
+    private static void staticFile(HttpExchange ex) throws IOException {
+        String path = ex.getRequestURI().getPath();
+        if (path.equals("/") || path.isEmpty()) {
+            path = "/index.html";
+        }
+        if (path.equals("/admin")) {
+            path = "/admin.html";
+        }
+        if (path.equals("/watch")) {
+            path = "/watch.html";
+        }
+        if (path.equals("/judge")) {
+            path = "/judge.html";
+        }
+        if (path.equals("/super")) {
+            path = "/super.html";
+        }
+        if (path.equals("/case")) {
+            path = "/case.html";
+        }
+        // 只允许 frontend 目录内的文件：先归一化再判断前缀，
+        // 否则 /../data/state.tsv 这类请求会把口令、成绩直接读走
+        Path base = Paths.get("frontend").toAbsolutePath().normalize();
+        Path file;
+        try {
+            file = base.resolve(path.substring(1)).normalize();
+        } catch (Exception badPath) {
+            error(ex, 404, "not found");
+            return;
+        }
+        if (!file.startsWith(base) || !Files.isRegularFile(file)) {
+            error(ex, 404, "not found");
+            return;
+        }
+        byte[] bytes = Files.readAllBytes(file);
+        String type = "text/plain; charset=utf-8";
+        String name = file.getFileName().toString().toLowerCase();
+        if (name.endsWith(".html")) {
+            type = "text/html; charset=utf-8";
+        } else if (name.endsWith(".css")) {
+            type = "text/css; charset=utf-8";
+        } else if (name.endsWith(".js")) {
+            type = "application/javascript; charset=utf-8";
+        } else if (name.endsWith(".png")) {
+            type = "image/png";
+        } else if (name.endsWith(".ico")) {
+            type = "image/x-icon";
+        }
+        ex.getResponseHeaders().set("Content-Type", type);
+        // 本地平台改完就要立刻生效：禁止浏览器对静态文件做启发式缓存，
+        // 否则用户每次进页面都得 Ctrl+F5 才能看到新版本
+        ex.getResponseHeaders().set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        ex.getResponseHeaders().set("Pragma", "no-cache");
+        ex.getResponseHeaders().set("Expires", "0");
+        ex.sendResponseHeaders(200, bytes.length);
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(bytes);
+        }
+    }
+
+    private static String localIp() {
+        try {
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            while (nis.hasMoreElements()) {
+                NetworkInterface ni = nis.nextElement();
+                if (!ni.isUp() || ni.isLoopback()) {
+                    continue;
+                }
+                Enumeration<InetAddress> addrs = ni.getInetAddresses();
+                while (addrs.hasMoreElements()) {
+                    InetAddress a = addrs.nextElement();
+                    if (a instanceof java.net.Inet4Address) {
+                        return a.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "localhost";
+    }
+}

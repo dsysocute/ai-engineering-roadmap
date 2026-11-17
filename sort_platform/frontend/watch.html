@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>实时观赛 · 排序算法测评</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1a212b;
+      --line: #242c37;
+      --text: #c8d1da;
+      --text-2: #8b949e;
+      --text-3: #6b7580;
+      --blue: #2f81f7;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --gray: #4a5560;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    /* ---------- 左侧选手栏 ---------- */
+    .side {
+      width: 238px;
+      flex: 0 0 238px;
+      display: flex;
+      flex-direction: column;
+      background: #10151c;
+      border-right: 1px solid var(--line);
+    }
+
+    .side-head {
+      padding: 14px 12px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .side-title {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--text-2);
+      letter-spacing: 0.4px;
+    }
+
+    .side-title b {
+      font-size: 16px;
+      color: #e6edf3;
+    }
+
+    .side-search {
+      width: 100%;
+      height: 28px;
+      margin-top: 9px;
+      padding: 0 9px;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      outline: none;
+    }
+
+    .side-search:focus {
+      border-color: var(--blue);
+    }
+
+    .side-filter {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .side-filter button {
+      flex: 1;
+      height: 24px;
+      font-size: 11.5px;
+      color: var(--text-3);
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .side-filter button.on {
+      color: #9ec7ff;
+      background: rgba(47, 129, 247, 0.12);
+      border-color: rgba(47, 129, 247, 0.4);
+    }
+
+    .side-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0 10px;
+    }
+
+    .side-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .side-list::-webkit-scrollbar-thumb {
+      background: #232b35;
+      border-radius: 4px;
+    }
+
+    .prow {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 12px;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+    }
+
+    .prow:hover {
+      background: #161d26;
+    }
+
+    .prow.on {
+      background: #16202c;
+      border-left-color: var(--blue);
+    }
+
+    /* 离线选手：整行压暗，但仍然可以点开看成绩，只是不再抢视线 */
+    .prow.off {
+      opacity: 0.42;
+    }
+
+    .prow.off:hover {
+      opacity: 0.78;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #39424d;
+      flex-shrink: 0;
+    }
+
+    .dot.live {
+      background: var(--green);
+      box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.16);
+    }
+
+    .prow .num {
+      width: 44px;
+      font-size: 12.5px;
+      color: #dbe4ee;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .prow .tag {
+      flex: 1;
+      font-size: 11px;
+      color: var(--text-3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .prow .tag.coding {
+      color: #9ec7ff;
+    }
+
+    .prow .tag.judging {
+      color: #e3c07a;
+    }
+
+    .prow .tag.finished {
+      color: #8fe0a0;
+    }
+
+    .prow .tag.fail {
+      color: #d9908a;
+    }
+
+    .prow .sc {
+      font-size: 12px;
+      color: #dbe4ee;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .prow .finish-flag {
+      font-size: 10px;
+      padding: 0 4px;
+      color: #8fe0a0;
+      border: 1px solid rgba(63, 185, 80, 0.4);
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ---------- 右侧主体 ---------- */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .head-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 22px 10px;
+    }
+
+    .head-row h1 {
+      font-size: 16.5px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #e6edf3;
+    }
+
+    .head-row .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #ffb3ad;
+      background: rgba(248, 81, 73, 0.12);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 3px;
+    }
+
+    .head-row .live i {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .stats b {
+      font-size: 14px;
+      color: #e6edf3;
+      margin-right: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .head-link {
+      font-size: 12px;
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    .head-link:hover {
+      text-decoration: underline;
+    }
+
+    .danmaku-bar {
+      position: relative;
+      height: 156px;
+      overflow: hidden;
+      background: radial-gradient(120% 140% at 50% 0%, #10151d 0%, #080b10 72%);
+      border-top: 1px solid #1b222b;
+      border-bottom: 1px solid #1b222b;
+      flex-shrink: 0;
+    }
+
+    .danmaku-empty {
+      position: absolute;
+      left: 22px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 11.5px;
+      color: var(--text-3);
+    }
+
+    .danmaku-track {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .danmaku {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      white-space: nowrap;
+      font-size: 14px;
+      color: #b9c6d3;
+      animation: dm-slide 12s linear forwards;
+    }
+
+    .danmaku.from-viewer {
+      color: #d6b98c;
+    }
+
+    .danmaku.from-admin {
+      color: #8fbfae;
+    }
+
+    .danmaku.from-judge {
+      color: #f0a273;
+      font-weight: 700;
+    }
+
+    .danmaku.from-super {
+      color: #b79ae8;
+      font-weight: 700;
+    }
+
+    @keyframes dm-slide {
+      from { left: 100%; }
+      to { left: -100%; }
+    }
+
+    .cheer {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 9px 22px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .cheer .tag {
+      font-size: 12px;
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    .cheer input {
+      height: 29px;
+      padding: 0 10px;
+      font-size: 12.5px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      outline: none;
+    }
+
+    .cheer input.nick {
+      width: 106px;
+    }
+
+    .cheer input.text {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .cheer input:focus {
+      border-color: var(--blue);
+    }
+
+    .cheer button {
+      height: 29px;
+      padding: 0 16px;
+      font-size: 12.5px;
+      color: #fff;
+      background: var(--blue);
+      border: 1px solid var(--blue);
+      border-radius: 5px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .cheer button:hover {
+      background: #3b8bf8;
+    }
+
+    .cheer button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .cheer .hint {
+      font-size: 11.5px;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 22px 28px;
+    }
+
+    .content::-webkit-scrollbar {
+      width: 9px;
+    }
+
+    .content::-webkit-scrollbar-thumb {
+      background: #232b35;
+      border-radius: 5px;
+    }
+
+    /* ---------- 详情 ---------- */
+    .detail {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 16px 18px 18px;
+      margin-bottom: 18px;
+    }
+
+    .detail.hidden {
+      display: none;
+    }
+
+    .detail-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .detail-top .who {
+      font-size: 17px;
+      font-weight: 600;
+      color: #e6edf3;
+      letter-spacing: 0.4px;
+    }
+
+    .detail-top .back {
+      margin-left: auto;
+      height: 26px;
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--text-2);
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .detail-top .back:hover {
+      color: var(--text);
+      border-color: #3a4553;
+    }
+
+    .badge {
+      padding: 1px 8px;
+      font-size: 11.5px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .badge.idle {
+      color: var(--text-3);
+      background: #1b222b;
+      border: 1px solid var(--line);
+    }
+
+    .badge.coding {
+      color: #9ec7ff;
+      background: rgba(47, 129, 247, 0.12);
+      border: 1px solid rgba(47, 129, 247, 0.3);
+    }
+
+    .badge.judging {
+      color: #e3c07a;
+      background: rgba(210, 153, 34, 0.12);
+      border: 1px solid rgba(210, 153, 34, 0.28);
+    }
+
+    .badge.finished {
+      color: #8fe0a0;
+      background: rgba(63, 185, 80, 0.12);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+
+    .badge.fail {
+      color: #d9908a;
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+
+    .badge.on {
+      color: #8fe0a0;
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.26);
+    }
+
+    .badge.off {
+      color: var(--text-3);
+      background: #171d25;
+      border: 1px solid var(--line);
+    }
+
+    .detail-state {
+      margin-top: 12px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #b9c6d3;
+      background: #10151c;
+      border: 1px solid #1e252f;
+      border-left: 2px solid var(--line);
+      border-radius: 5px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .kv .cell {
+      padding: 9px 11px;
+      background: #10151c;
+      border: 1px solid #1e252f;
+      border-radius: 5px;
+    }
+
+    .kv .cell .k {
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.3px;
+    }
+
+    .kv .cell .v {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #dbe4ee;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kv .cell .v.big {
+      font-size: 19px;
+      font-weight: 600;
+      color: #8fe0a0;
+    }
+
+    .kv .cell .v.dim {
+      color: var(--text-3);
+      font-size: 13px;
+    }
+
+    .progress {
+      margin-top: 14px;
+    }
+
+    .progress .plabel {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-3);
+      margin-bottom: 5px;
+    }
+
+    .bar-track {
+      height: 6px;
+      background: #1b222b;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 3px;
+      transition: width 0.35s;
+    }
+
+    .bar-fill.fail {
+      background: #b4554d;
+    }
+
+    /* ---------- 实时代码 ---------- */
+    .code-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #1e252f;
+      font-size: 11.5px;
+      color: var(--text-3);
+    }
+
+    .code-head .live-pill {
+      padding: 1px 7px;
+      font-size: 10.5px;
+      color: #ffb3ad;
+      background: rgba(248, 81, 73, 0.12);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 3px;
+    }
+
+    .code-body {
+      margin-top: 8px;
+      padding: 12px 14px;
+      max-height: 380px;
+      overflow: auto;
+      background: #080b10;
+      border: 1px solid #1e252f;
+      border-radius: 5px;
+      font-family: "Consolas", "Cascadia Mono", "Courier New", monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #c8d1da;
+      white-space: pre;
+      tab-size: 4;
+    }
+
+    .code-body::-webkit-scrollbar {
+      width: 9px;
+      height: 9px;
+    }
+
+    .code-body::-webkit-scrollbar-thumb {
+      background: #232b35;
+      border-radius: 5px;
+    }
+
+    /* ---------- 概览网格 ---------- */
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0 10px;
+      font-size: 12.5px;
+      color: #e6edf3;
+      letter-spacing: 0.4px;
+    }
+
+    .section-title span.line {
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 9px;
+    }
+
+    .card {
+      padding: 10px 12px 11px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--gray);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .card:hover {
+      background: var(--panel-2);
+      border-color: #303a46;
+    }
+
+    .card.coding {
+      border-left-color: var(--blue);
+    }
+
+    .card.judging {
+      border-left-color: var(--yellow);
+    }
+
+    .card.finished {
+      border-left-color: var(--green);
+    }
+
+    .card.fail {
+      border-left-color: #b4554d;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 7px;
+    }
+
+    .card-top .no {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #e6edf3;
+      letter-spacing: 0.3px;
+    }
+
+    .card-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-top: 3px;
+      font-size: 11.5px;
+      color: var(--text-2);
+    }
+
+    .card-row .v {
+      color: #dbe4ee;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-row .score {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #8fe0a0;
+    }
+
+    .card-row .score.fail {
+      font-size: 12px;
+      font-weight: 500;
+      color: #d9908a;
+    }
+
+    .card-rank {
+      margin-left: 4px;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .empty-tip {
+      padding: 22px 4px;
+      font-size: 12.5px;
+      color: var(--text-3);
+      grid-column: 1 / -1;
+    }
+
+    footer {
+      padding: 16px 2px 0;
+      font-size: 11.5px;
+      color: var(--text-3);
+      line-height: 1.9;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+        overflow: auto;
+      }
+
+      .side {
+        width: 100%;
+        flex: 0 0 auto;
+        max-height: 232px;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .head-row {
+        flex-wrap: wrap;
+        gap: 9px;
+      }
+
+      .stats {
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .cheer {
+        flex-wrap: wrap;
+      }
+
+      .cheer .hint {
+        display: none;
+      }
+    }
+    /* ---------- 登录身份 / 赛事状态 ---------- */
+    .me {
+      font-size: 12px;
+      color: #d6b98c;
+      padding: 2px 9px;
+      border: 1px solid #3a3226;
+      border-radius: 3px;
+      background: rgba(214, 185, 140, 0.08);
+    }
+
+    .ctag {
+      font-size: 12px;
+      color: var(--text-2);
+      padding: 2px 9px;
+      border: 1px solid #242c37;
+      border-radius: 3px;
+    }
+
+    .ctag.on {
+      color: #7ec8a0;
+      border-color: #2b4a3a;
+    }
+
+    /* ---------- 课堂讨论 ---------- */
+    .talk {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 22px 12px;
+      border-bottom: 1px solid #1b222b;
+      flex-shrink: 0;
+      max-height: 210px;
+    }
+
+    .talk-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      color: #c8d1da;
+    }
+
+    .talk-count {
+      font-size: 11.5px;
+      color: var(--text-3);
+    }
+
+    .talk-list {
+      flex: 1;
+      min-height: 54px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .talk-item {
+      font-size: 12.5px;
+      line-height: 1.85;
+      color: #b9c6d3;
+      word-break: break-word;
+    }
+
+    .talk-item b {
+      font-weight: 600;
+      color: #8fb4d8;
+      margin-right: 6px;
+    }
+
+    .talk-item.from-admin b { color: #8fbfae; }
+
+    .talk-item.from-judge b {
+      color: #f0a273;
+      font-weight: 700;
+    }
+
+    .talk-item.from-super b {
+      color: #b79ae8;
+      font-weight: 700;
+    }
+
+    .talk-item .t {
+      margin-left: 8px;
+      font-size: 11px;
+      color: #4f5b69;
+    }
+
+    .talk-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .talk-form input {
+      flex: 1;
+      height: 32px;
+      padding: 0 10px;
+      font-size: 12.5px;
+      color: #c8d1da;
+      background: #0d1117;
+      border: 1px solid #242c37;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .talk-form input:focus {
+      border-color: #2f81f7;
+    }
+
+    .talk-form input::placeholder {
+      color: #56616f;
+    }
+
+    .talk-form button {
+      height: 32px;
+      padding: 0 14px;
+      font-size: 12.5px;
+      color: #c8d1da;
+      background: #1b222b;
+      border: 1px solid #2b3543;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .talk-form button:hover {
+      border-color: #2f81f7;
+      color: #7cb2ff;
+    }
+
+    .talk-tip {
+      min-height: 15px;
+      font-size: 11.5px;
+      color: #8d6a5a;
+    }
+
+    /* 选手快捷消息 / 选手弹幕 / 工作人员弹幕：水平居中，亮 5 秒后淡出 */
+    .danmaku.quick {
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 3px 14px;
+      font-weight: 600;
+      color: #dbe7f5;
+      background: rgba(47, 129, 247, 0.14);
+      border: 1px solid rgba(47, 129, 247, 0.45);
+      border-radius: 3px;
+      animation: quick-glow 5s ease-out forwards;
+    }
+
+    /* 裁判 / 管理员 / 总管：中间停留并高亮 */
+    .danmaku.quick.staff {
+      color: #ffd98a;
+      background: rgba(210, 153, 34, 0.18);
+      border-color: rgba(210, 153, 34, 0.7);
+      box-shadow: 0 0 12px rgba(210, 153, 34, 0.25);
+    }
+
+    @keyframes quick-glow {
+      0% { opacity: 0; transform: translate(-50%, 6px); }
+      12% { opacity: 1; transform: translate(-50%, 0); }
+      72% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="side">
+    <div class="side-head">
+      <div class="side-title">参赛选手 <b id="sideTotal">65</b>
+      </div>
+      <input id="search" class="side-search" placeholder="搜索编号，如 05">
+      <div class="side-filter" id="filters">
+        <button data-f="all" class="on">全部</button>
+        <button data-f="online">在线</button>
+        <button data-f="active">作答中</button>
+        <button data-f="done">完赛</button>
+      </div>
+    </div>
+    <div class="side-list" id="sideList"></div>
+  </aside>
+
+  <div class="main">
+    <div class="head-row">
+      <h1>实时观赛</h1>
+      <span id="avAnchor"></span>
+      <span class="me" id="meTag">未登录</span>
+      <span class="ctag" id="contestTag">等待比赛</span>
+      <span class="ctag" id="remainTag" style="display:none">剩余 --:--:--</span>
+      <span class="live"><i></i>LIVE</span>
+      <div class="stats">
+        <span>作答中 <b id="statCoding">0</b></span>
+        <span>待评测 <b id="statJudging">0</b></span>
+        <span>已完成 <b id="statFinished">0</b></span>
+        <span>未开始 <b id="statIdle">0</b></span>
+      </div>
+      <a class="head-link" id="backLogin" href="/">返回登录 →</a>
+    </div>
+
+    <div class="danmaku-bar">
+      <div class="danmaku-track" id="danmakuTrack"></div>
+      <span class="danmaku-empty" id="danmakuEmpty">弹幕区 · 为选手加油的消息会在这里滚过</span>
+    </div>
+
+    <div class="cheer">
+      <span class="tag">发弹幕加油</span>
+      <input id="cheerText" class="text" maxlength="60" placeholder="说点什么给选手打气，回车发送">
+      <button id="cheerSend">发送弹幕</button>
+      <span class="hint" id="cheerHint">比赛进行中也可以发弹幕，含提示内容会被拦截</span>
+    </div>
+
+    <div class="talk">
+      <div class="talk-head">
+        <span>课堂讨论</span>
+        <span class="talk-count" id="talkCount">暂无发言</span>
+      </div>
+      <div class="talk-list" id="talkList"></div>
+      <div class="talk-form">
+        <input id="talkInput" maxlength="120" placeholder="谈谈比赛形势、猜猜谁能赢，理性交流">
+        <button id="talkSend">发表评论</button>
+      </div>
+      <div class="talk-tip" id="talkTip"></div>
+    </div>
+
+    <div class="content">
+      <div class="detail hidden" id="detailBox"></div>
+
+      <div id="overview">
+        <div class="section-title">已完成<span class="line"></span>
+        </div>
+        <div class="grid" id="gridFinished"></div>
+
+        <div class="section-title">作答中 / 待评测<span class="line"></span>
+        </div>
+        <div class="grid" id="gridActive"></div>
+
+        <div class="section-title">未开始<span class="line"></span>
+        </div>
+        <div class="grid" id="gridIdle"></div>
+      </div>
+
+      <footer>
+        本页实时展示选手进度、代码与成绩，点选左侧选手可查看与选手端一致的状态信息，进度每 3 秒刷新、代码每 2 秒拉取。<br>
+        弹幕仅用于加油打气；含代码提示、写法纠正或攻击性内容的发送会被直接拦截。
+      </footer>
+    </div>
+  </div>
+
+  <script src="session.js?v=20261112a"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // 观赛页与选手端共用登录态：直接用同一份 token
+    // 裁判从控制台点「进入观赛」带 ?jt=<裁判 token>，总管从总管控制台带 ?st=<总管 token>，
+    // 两者以各自身份发言，讨论区与弹幕里会带「裁判」「总管」头衔。
+    const JUDGE_TOKEN = (function () {
+      const m = location.search.match(/[?&]jt=([^&]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    })();
+    const SUPER_TOKEN = (function () {
+      const m = location.search.match(/[?&]st=([^&]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    })();
+    // 管理员后台「进入观赛」可以带 ?at=<管理员 token>；没有就按学生身份
+    const ADMIN_TOKEN = (function () {
+      const m = location.search.match(/[?&]at=([^&]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    })();
+    // 工作人员视角：告诉 avatar.js 不要拿浏览器里残留的学生会话挂头像
+    window.__STAFF_VIEW__ = !!(JUDGE_TOKEN || SUPER_TOKEN || ADMIN_TOKEN);
+    const TOKEN = JUDGE_TOKEN || SUPER_TOKEN || ADMIN_TOKEN
+      || (window.AppSession ? AppSession.token() : (localStorage.getItem('sort_platform_token') || ''));
+    const ROLE = JUDGE_TOKEN ? 'judge'
+      : (SUPER_TOKEN ? 'super'
+        : (ADMIN_TOKEN ? 'admin'
+          : (window.AppSession ? (AppSession.role() || 'viewer') : (localStorage.getItem('sort_platform_role') || 'viewer'))));
+    const STAFF = ROLE === 'judge' || ROLE === 'super' || ROLE === 'admin';
+    const MYNO = STAFF ? '0' : (window.AppSession ? AppSession.no() : (localStorage.getItem('sort_platform_no') || '0'));
+    let contest = 'idle';
+
+    // ---------------- 登录态失效（被顶号 / 令牌作废） ----------------
+    let kicked = false;
+    let pollTimers = [];
+
+    function stopAllPolling() {
+      pollTimers.forEach(clearInterval);
+      pollTimers = [];
+      stopCodePoll();
+    }
+
+    /** 被顶号后：停掉全部轮询、清本标签页令牌、顶部给一条明确提示，别让页面假装还活着 */
+    function onKicked() {
+      if (kicked) return;
+      kicked = true;
+      stopAllPolling();
+      try { if (window.AppSession) AppSession.clear(); } catch (e) { }
+      ['cheerSend', 'talkSend'].forEach((id) => {
+        const b = $(id);
+        if (b) { b.disabled = true; b.style.opacity = '.45'; b.style.cursor = 'not-allowed'; }
+      });
+      const bar = document.createElement('div');
+      bar.style.cssText = 'position:fixed;left:50%;top:74px;transform:translateX(-50%);z-index:9999;' +
+        'padding:10px 16px;background:#2b1d1d;border:1px solid #f85149;border-radius:8px;color:#ffd7d5;' +
+        'font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.45);display:flex;gap:12px;align-items:center';
+      bar.innerHTML = '<span>登录已失效（账号可能已在其他终端登录），本页已停止刷新。</span>';
+      const a = document.createElement('a');
+      a.href = '/';
+      a.textContent = '回登录页';
+      a.style.cssText = 'color:#7cb2ff;text-decoration:none;border:1px solid #7cb2ff66;padding:3px 10px;border-radius:12px;white-space:nowrap';
+      bar.appendChild(a);
+      document.body.appendChild(bar);
+    }
+
+    /** 认证接口返回 401：按被顶号处理 */
+    function authFailed(res) {
+      if (res.status === 401) {
+        onKicked();
+        return true;
+      }
+      return false;
+    }
+
+    function hdr(extra) {
+      return Object.assign({ 'X-Token': TOKEN }, extra || {});
+    }
+
+    /** 工作人员发言走各自的后台通道：管理员用后台接口，裁判/总管用 staff 接口 */
+    function staffPostUrl() {
+      return ROLE === 'admin' ? '/api/admin/comment-post' : '/api/staff/comment';
+    }
+
+    let lastData = null;
+    let lastDataAt = 0;
+    let seen = new Set();
+    let dmIndex = 0;
+    let selectedNo = 0;
+    let filter = 'all';
+    let keyword = '';
+
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function hms(sec) {
+      const s = Math.max(0, Math.floor(Number(sec) || 0));
+      const pad = (v) => String(v).padStart(2, '0');
+      return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
+    }
+
+    function whoText(c) {
+      if (c.role === 'super') {
+        return '总管';
+      }
+      if (c.role === 'judge') {
+        return '裁判';
+      }
+      if (c.role === 'admin') {
+        return '管理员';
+      }
+      if (c.role === 'viewer') {
+        return c.username && c.username.indexOf('观众') === 0 ? c.username : '观众 ' + (c.username || '');
+      }
+      return '选手' + String(c.no).padStart(2, '0');
+    }
+
+    function roleClass(c) {
+      if (c.role === 'super') {
+        return ' from-super';
+      }
+      if (c.role === 'judge') {
+        return ' from-judge';
+      }
+      if (c.role === 'admin') {
+        return ' from-admin';
+      }
+      if (c.role === 'viewer') {
+        return ' from-viewer';
+      }
+      return '';
+    }
+
+    /** 中间停留式：选手弹幕、裁判/管理员/总管弹幕、快捷消息 */
+    function pushCenter(c, ttl) {
+      const track = $('danmakuTrack');
+      const empty = $('danmakuEmpty');
+      if (empty) empty.style.display = 'none';
+      const staff = c.role === 'judge' || c.role === 'admin' || c.role === 'super';
+      const item = document.createElement('div');
+      item.className = 'danmaku quick' + (staff ? ' staff ' + c.role : '');
+      item.textContent = whoText(c) + '：' + c.text;
+      track.querySelectorAll('.danmaku.quick').forEach((el) => el.remove());
+      item.style.top = 'calc(50% - 12px)';
+      track.appendChild(item);
+      setTimeout(() => {
+        item.remove();
+        if (!track.children.length && empty) empty.style.display = '';
+      }, ttl || 5200);
+    }
+
+    function pushDanmaku(c) {
+      // 观众横向飘过；选手和工作人员在中间停留
+      if (c.role === 'student' || c.role === 'judge' || c.role === 'admin' || c.role === 'super') {
+        pushCenter(c);
+        return;
+      }
+      const track = $('danmakuTrack');
+      const empty = $('danmakuEmpty');
+      if (track.querySelectorAll('.danmaku:not(.quick)').length >= 8) return;
+      if (empty) empty.style.display = 'none';
+      const item = document.createElement('div');
+      item.className = 'danmaku' + roleClass(c);
+      item.textContent = whoText(c) + '：' + c.text;
+      item.style.top = (dmIndex++) % 6 * 24 + 'px';
+      track.appendChild(item);
+      item.addEventListener('animationend', () => {
+        item.remove();
+        if (!track.children.length && empty) empty.style.display = '';
+      });
+    }
+
+    /** 选手快捷消息：原地亮 5 秒，不横滚 */
+    function pushQuick(q) {
+      pushCenter({ role: 'student', no: q.no, text: q.text }, 5200);
+    }
+
+    function elapsedOf(p, nowMs) {
+      if (p.state === 'coding') {
+        const extra = Math.floor((nowMs - lastDataAt) / 1000);
+        return Number(p.elapsed || 0) + Math.max(0, extra);
+      }
+      return Number(p.elapsed || 0);
+    }
+
+    function stateTag(p) {
+      if (p.state === 'coding') {
+        return { text: '作答中', cls: 'coding' };
+      }
+      if (p.state === 'judging') {
+        return { text: '待评测', cls: 'judging' };
+      }
+      if (p.state === 'finished') {
+        return p.correct ? { text: '完赛', cls: 'finished' } : { text: '未通过', cls: 'fail' };
+      }
+      return { text: '未开始', cls: 'idle' };
+    }
+
+    /** 一句话代码状态：不暴露代码内容，只说写到哪一步 */
+    function codeStateText(p, el) {
+      if (p.state === 'idle') {
+        return p.online ? '已登录，尚未开始作答。' : '离线，尚未进入答题页。';
+      }
+      if (p.state === 'coding') {
+        return '正在编写代码，已用时 ' + hms(el) + '，尚未交卷。';
+      }
+      if (p.state === 'judging') {
+        return '已交卷，正确性 ' + Number(p.caseOk || 0) + '/' + Number(p.caseTotal || 0)
+          + ' 通过，效率评测排队中。';
+      }
+      if (!p.correct) {
+        return '已交卷，正确性未通过' + (p.detail ? '：' + p.detail : '。');
+      }
+      return '已完赛，正确性 ' + Number(p.caseOk || 0) + '/' + Number(p.caseTotal || 0)
+        + ' 全部通过' + (p.efficiencyReady ? '，效率评测已完成。' : '。');
+    }
+
+    function sideRow(p, el) {
+      const t = stateTag(p);
+      const row = document.createElement('div');
+      row.className = 'prow' + (p.no === selectedNo ? ' on' : '') + (p.online ? '' : ' off');
+      row.setAttribute('data-no', p.no);
+
+      const dot = document.createElement('span');
+      dot.className = 'dot' + (p.online ? ' live' : '');
+      dot.title = p.online ? '在线' : '离线';
+
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = String(p.no).padStart(2, '0');
+
+      const tag = document.createElement('span');
+      tag.className = 'tag ' + t.cls;
+      tag.textContent = t.text + (p.state === 'coding' ? ' ' + hms(el) : '');
+
+      const sc = document.createElement('span');
+      sc.className = 'sc';
+      sc.textContent = (p.state === 'finished' || p.state === 'judging')
+        ? Number(p.score || 0).toFixed(1) : '';
+
+      row.appendChild(dot);
+      row.appendChild(num);
+      row.appendChild(tag);
+      if (p.state === 'finished' && p.correct) {
+        const flag = document.createElement('span');
+        flag.className = 'finish-flag';
+        flag.textContent = '完赛';
+        row.appendChild(flag);
+      }
+      row.appendChild(sc);
+      row.addEventListener('click', () => {
+        selectedNo = p.no;
+        showDetail(p.no);
+        renderSide();
+      });
+      return row;
+    }
+
+    function matchFilter(p) {
+      if (keyword && String(p.no).padStart(2, '0').indexOf(keyword) < 0
+        && String(p.username).indexOf(keyword) < 0) {
+        return false;
+      }
+      if (filter === 'online') {
+        return p.online;
+      }
+      if (filter === 'active') {
+        return p.state === 'coding' || p.state === 'judging';
+      }
+      if (filter === 'done') {
+        return p.state === 'finished';
+      }
+      return true;
+    }
+
+    function renderSide() {
+      if (!lastData) return;
+      const nowMs = Date.now();
+      const list = $('sideList');
+      const items = onlineItems().filter(matchFilter);
+      const keepTop = list.scrollTop;
+      list.innerHTML = '';
+      if (!items.length) {
+        const tip = document.createElement('div');
+        tip.className = 'empty-tip';
+        tip.textContent = '当前没有在线选手';
+        tip.style.padding = '18px 12px';
+        list.appendChild(tip);
+        return;
+      }
+      items.forEach((p) => list.appendChild(sideRow(p, elapsedOf(p, nowMs))));
+      list.scrollTop = keepTop;
+    }
+
+    function cardOf(p, nowMs) {
+      const t = stateTag(p);
+      const div = document.createElement('div');
+      div.className = 'card ' + p.state + (p.state === 'finished' && !p.correct ? ' fail' : '');
+      const top = document.createElement('div');
+      top.className = 'card-top';
+      const no = document.createElement('span');
+      no.className = 'no';
+      no.textContent = '选手 ' + String(p.no).padStart(2, '0');
+      const badge = document.createElement('span');
+      badge.className = 'badge ' + t.cls;
+      badge.textContent = t.text;
+      top.appendChild(no);
+      top.appendChild(badge);
+      div.appendChild(top);
+
+      const r1 = document.createElement('div');
+      r1.className = 'card-row';
+      const l1 = document.createElement('span');
+      l1.textContent = p.state === 'coding' ? '已用时' : '编码时长';
+      const v1 = document.createElement('span');
+      v1.className = 'v';
+      v1.textContent = (p.state === 'idle') ? '—' : hms(elapsedOf(p, nowMs));
+      r1.appendChild(l1);
+      r1.appendChild(v1);
+      div.appendChild(r1);
+
+      if (p.state === 'finished' || p.state === 'judging') {
+        const r2 = document.createElement('div');
+        r2.className = 'card-row';
+        const l2 = document.createElement('span');
+        l2.textContent = p.state === 'judging' ? '基础分' : '总分';
+        const v2 = document.createElement('span');
+        v2.className = 'score';
+        if (p.state === 'finished' && !p.correct) {
+          v2.className = 'score fail';
+          v2.textContent = '未通过';
+        } else {
+          v2.textContent = Number(p.score || 0).toFixed(1);
+        }
+        r2.appendChild(l2);
+        r2.appendChild(v2);
+        if (p.rank) {
+          const rk = document.createElement('span');
+          rk.className = 'card-rank';
+          rk.textContent = '第 ' + p.rank + ' 名';
+          r2.appendChild(rk);
+        }
+        div.appendChild(r2);
+      } else if (p.state === 'coding') {
+        const r2 = document.createElement('div');
+        r2.className = 'card-row';
+        const l2 = document.createElement('span');
+        l2.textContent = '状态';
+        const v2 = document.createElement('span');
+        v2.className = 'v';
+        v2.textContent = p.online ? '编写代码中' : '离线';
+        r2.appendChild(l2);
+        r2.appendChild(v2);
+        div.appendChild(r2);
+      }
+      div.addEventListener('click', () => {
+        selectedNo = p.no;
+        showDetail(p.no);
+        renderSide();
+      });
+      return div;
+    }
+
+    function fillGrid(elId, list, nowMs) {
+      const el = $(elId);
+      el.innerHTML = '';
+      if (!list.length) {
+        const tip = document.createElement('div');
+        tip.className = 'empty-tip';
+        // 一刀切按「在线」过滤后，空组统一提示别说的那么绝对
+        tip.textContent = emptyGridText(elId);
+        el.appendChild(tip);
+        return;
+      }
+      list.forEach((p) => el.appendChild(cardOf(p, nowMs)));
+    }
+
+    function emptyGridText(elId) {
+      const all = onlineItems();
+      if (!all.length) return '当前没有在线选手。';
+      if (elId === 'gridFinished') return '还没有人跑完全部评测。';
+      if (elId === 'gridActive') return '当前没有选手在作答。';
+      return '在线选手都已开始作答。';
+    }
+
+    /** 观赛只展示在线选手：离线的不占位置，避免一堆"未开始"挤满列表 */
+    function onlineItems() {
+      const items = (lastData && lastData.items) || [];
+      return items.filter((p) => p.online);
+    }
+
+    function renderOverview(nowMs) {
+      const items = onlineItems();
+      const finished = items.filter((p) => p.state === 'finished')
+        .sort((a, b) => (a.rank || 999) - (b.rank || 999));
+      const active = items.filter((p) => p.state === 'coding' || p.state === 'judging')
+        .sort((a, b) => {
+          if (a.state !== b.state) return a.state === 'coding' ? -1 : 1;
+          return Number(b.elapsed || 0) - Number(a.elapsed || 0);
+        });
+      const idle = items.filter((p) => p.state === 'idle');
+      fillGrid('gridFinished', finished, nowMs);
+      fillGrid('gridActive', active, nowMs);
+      fillGrid('gridIdle', idle, nowMs);
+    }
+
+    /** 选中选手的明细卡：只在数据刷新或选中变化时重建，避免每秒闪一次 */
+    let detailKey = '';
+
+    function showDetail(no) {
+      const box = $('detailBox');
+      const p = lastData && (lastData.items || []).find((x) => x.no === no);
+      if (!p) {
+        box.innerHTML = '';
+        box.classList.add('hidden');
+        detailKey = '';
+        return;
+      }
+      const key = no + '@' + lastDataAt;
+      if (key === detailKey && !box.classList.contains('hidden')) {
+        return;
+      }
+      detailKey = key;
+      const nowMs = Date.now();
+      const el = elapsedOf(p, nowMs);
+      const t = stateTag(p);
+      const onBadge = p.online
+        ? '<span class="badge on">在线</span>'
+        : '<span class="badge off">离线</span>';
+      const caseOk = Number(p.caseOk || 0);
+      const caseTotal = Number(p.caseTotal || 0) || 5;
+      const pct = Math.round(Math.min(1, caseOk / caseTotal) * 100);
+      const barCls = (!p.submitted || p.correct) ? '' : ' fail';
+      const rankText = p.rank ? '第 ' + p.rank + ' 名' : '未排名';
+
+      box.innerHTML = ''
+        + '<div class="detail-top">'
+        + '<span class="who">选手 ' + String(p.no).padStart(2, '0') + '</span>'
+        + onBadge
+        + '<span class="badge ' + t.cls + '">' + t.text + '</span>'
+        + '<button class="back" id="backBtn">返回概览</button>'
+        + '</div>'
+        + '<div class="detail-state">' + esc(codeStateText(p, el)) + '</div>'
+        + '<div class="kv">'
+        + '<div class="cell"><div class="k">编码时长</div><div class="v" id="dElapsed">' + (p.state === 'idle' ? '—' : hms(el)) + '</div></div>'
+        + '<div class="cell"><div class="k">运行时长</div><div class="v' + (p.runMillis > 0 ? '' : ' dim') + '">'
+        + (p.runMillis > 0 ? Number(p.runMillis).toFixed(2) + ' ms' : '—') + '</div></div>'
+        + '<div class="cell"><div class="k">基础分</div><div class="v">' + Number(p.baseScore || 0).toFixed(1) + '</div></div>'
+        + '<div class="cell"><div class="k">编码速率分</div><div class="v">' + Number(p.codingScore || 0).toFixed(1) + '</div></div>'
+        + '<div class="cell"><div class="k">效率分</div><div class="v">' + Number(p.efficiencyScore || 0).toFixed(1) + '</div></div>'
+        + '<div class="cell"><div class="k">总分 · 名次</div><div class="v big">' + Number(p.score || 0).toFixed(1)
+        + '<span class="card-rank">' + rankText + '</span></div></div>'
+        + '</div>'
+        + '<div class="progress">'
+        + '<div class="plabel"><span>正确性用例</span><span>' + caseOk + ' / ' + caseTotal + '</span></div>'
+        + '<div class="bar-track"><div class="bar-fill' + barCls + '" style="width:' + pct + '%"></div></div>'
+        + '</div>'
+        + '<div class="kv">'
+        + '<div class="cell"><div class="k">交卷时间</div><div class="v' + (p.finishedAt ? '' : ' dim') + '">'
+        + (p.finishedAt ? esc(p.finishedAt) : '未交卷') + '</div></div>'
+        + '<div class="cell"><div class="k">提交状态</div><div class="v">'
+        + (p.submitted ? '已提交' : '未提交') + '</div></div>'
+        + '<div class="cell"><div class="k">账号</div><div class="v">' + esc(p.username) + '</div></div>'
+        + '</div>'
+        + '<div class="code-head"><span class="live-pill">实时</span><span id="codeMeta">读取中…</span></div>'
+        + '<pre class="code-body" id="codePre">该选手尚未上报代码</pre>';
+
+      // 重建时把上一次的代码、更新时间和滚动位置带回来，避免刷新时闪一下空白。
+      // 只有还是同一位选手才回填：切换选手时 lastCodeText 是上一个人的，
+      // 直接回填会让 B 的卡片先显示 A 的代码（最长 2 秒），观众会以为串号。
+      const pre = $('codePre');
+      if (pre && lastCodeText && codeNo === p.no) {
+        pre.textContent = lastCodeText;
+        if (lastCodeMeta) {
+          $('codeMeta').textContent = lastCodeMeta;
+        }
+        pre.scrollTop = lastCodeScroll;
+        pre.onscroll = () => {
+          lastCodeScroll = pre.scrollTop;
+        };
+      }
+
+      box.classList.remove('hidden');
+      $('overview').style.display = 'none';
+      // 详情卡一打开就启动该选手的代码轮询，否则「实时」区永远停在读取中
+      startCodePoll(p.no);
+      $('backBtn').onclick = closeDetail;
+    }
+
+    /** 关闭详情卡：隐藏卡片、恢复概览、停掉代码轮询（选中选手下线时也走这里） */
+    function closeDetail() {
+      selectedNo = 0;
+      const box = $('detailBox');
+      if (box) box.classList.add('hidden');
+      const ov = $('overview');
+      if (ov) ov.style.display = '';
+      stopCodePoll();
+      const back = $('backBtn');
+      if (back) back.onclick = null;
+      renderSide();
+    }
+
+    // ---------------- 选手代码（实时） ----------------
+
+    let codeTimer = null;
+    let codeNo = 0;
+    let lastCodeText = '';
+    let lastCodeMeta = '';
+    let lastCodeScroll = 0;
+
+    function startCodePoll(no) {
+      if (codeNo !== no) {
+        stopCodePoll();
+        codeNo = no;
+        // 换人必须清掉上一位的缓存，否则对方代码恰好相同（都用模板）时会一直显示「尚未上报」
+        lastCodeText = '';
+        lastCodeMeta = '';
+        lastCodeScroll = 0;
+      }
+      fetchCode(no);
+      if (!codeTimer) {
+        codeTimer = setInterval(() => fetchCode(codeNo), 2000);
+      }
+    }
+
+    function stopCodePoll() {
+      if (codeTimer) {
+        clearInterval(codeTimer);
+        codeTimer = null;
+      }
+      codeNo = 0;
+    }
+
+    async function fetchCode(no) {
+      try {
+        // 实时代码需要登录态；这里必须带上 token，服务端还会拒绝未交卷选手查看他人代码
+        const res = await fetch('/api/watch/code?no=' + no, { headers: hdr() });
+        if (res.status === 401 && TOKEN) {
+          onKicked();
+          return;
+        }
+        if (res.status === 401 || res.status === 403) {
+          const preDeny = $('codePre');
+          const metaDeny = $('codeMeta');
+          if (preDeny && metaDeny && no === codeNo) {
+            lastCodeText = '';
+            preDeny.textContent = res.status === 401
+              ? '登录后可查看选手的实时代码'
+              : '本人交卷后才能查看其他选手的代码';
+            metaDeny.textContent = '受限';
+          }
+          return;
+        }
+        if (!res.ok) {
+          return;
+        }
+        const d = await res.json();
+        // 请求发出后用户可能已经切到别的选手，迟到的响应直接丢弃，别串代码
+        if (no !== codeNo) {
+          return;
+        }
+        const pre = $('codePre');
+        const meta = $('codeMeta');
+        if (!pre || !meta) {
+          return;
+        }
+        if (!d.ready) {
+          if (lastCodeText !== '') {
+            lastCodeText = '';
+            lastCodeMeta = '等待上报';
+            pre.textContent = '该选手尚未上报代码';
+            meta.textContent = lastCodeMeta;
+          }
+          return;
+        }
+        if (d.code === lastCodeText) {
+          return;
+        }
+        lastCodeText = d.code;
+        pre.textContent = d.code;
+        const lines = d.code.split('\n').length;
+        const clock = d.at ? new Date(d.at).toLocaleTimeString('zh-CN', { hour12: false }) : '';
+        lastCodeMeta = lines + ' 行' + (clock ? ' · ' + clock + ' 更新' : '');
+        meta.textContent = lastCodeMeta;
+      } catch (e) {
+        // 网络抖动，下一轮再拉
+      }
+    }
+
+    function render() {
+      if (!lastData) return;
+      renderSide();
+      if (selectedNo) {
+        showDetail(selectedNo);
+      } else {
+        renderOverview(Date.now());
+      }
+    }
+
+    let loadSeq = 0;
+    async function load() {
+      const mySeq = ++loadSeq;
+      try {
+        const res = await fetch('/api/watch');
+        if (!res.ok) return;
+        const data = await res.json();
+        // 慢请求可能晚于更新的一次返回，丢弃旧快照，别把列表/名次回滚
+        if (mySeq !== loadSeq) return;
+        lastData = data;
+        lastDataAt = Date.now();
+        const list = onlineItems();
+        $('sideTotal').textContent = list.length;
+        $('statCoding').textContent = list.filter((p) => p.state === 'coding').length;
+        $('statJudging').textContent = list.filter((p) => p.state === 'judging').length;
+        $('statFinished').textContent = list.filter((p) => p.state === 'finished').length;
+        $('statIdle').textContent = list.filter((p) => p.state === 'idle').length;
+        // 选中的选手下线了就退回概览，别留一张过期详情卡
+        if (selectedNo && !list.some((p) => p.no === selectedNo)) {
+          closeDetail();
+        }
+        render();
+      } catch (e) {
+        // 后端重启或者网络抖动，下一轮再拉
+      }
+    }
+
+    async function pollDanmaku() {
+      if (!TOKEN) return;
+      try {
+        const res = await fetch('/api/comments?limit=80&kind=danmaku', { headers: hdr() });
+        if (authFailed(res)) return;
+        if (!res.ok) return;
+        const data = await res.json();
+        (data.items || []).forEach((c) => {
+          if (c.kind !== 'danmaku') return;
+          const id = String(c.id);
+          if (!seen.has(id)) {
+            seen.add(id);
+            pushDanmaku(c);
+          }
+        });
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    async function cheer() {
+      const text = $('cheerText').value.trim();
+      if (!text) return;
+      if (!TOKEN) {
+        setCheerHint('请先在首页登录观众身份后再发弹幕');
+        return;
+      }
+      $('cheerSend').disabled = true;
+      try {
+        const res = await fetch(STAFF ? staffPostUrl() : '/api/watch/danmaku', {
+          method: 'POST',
+          headers: hdr({ 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }),
+          body: new URLSearchParams(STAFF ? { text, kind: 'danmaku' } : { text }).toString()
+        });
+        if (authFailed(res)) return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          const msg = (data && data.error) ? data.error : '发送失败';
+          setCheerHint(msg);
+          return;
+        }
+        $('cheerText').value = '';
+        setCheerHint('仅弹幕区可见，不进入讨论区');
+        pollDanmaku();
+      } catch (e) {
+        setCheerHint('网络异常，稍后再试');
+      } finally {
+        $('cheerSend').disabled = false;
+        $('cheerText').focus();
+      }
+    }
+
+    function setCheerHint(msg) {
+      $('cheerHint').textContent = msg;
+      clearTimeout(setCheerHint._t);
+      setCheerHint._t = setTimeout(() => {
+        $('cheerHint').textContent = '仅弹幕区可见，不进入讨论区';
+      }, 4000);
+    }
+
+    // ---------- 课堂讨论：观众全时段可发，选手完赛后同样可见 ----------
+    let talkKey = '';
+
+    function renderTalk(items) {
+      const list = (items || []).filter((c) => c.kind !== 'danmaku');
+      const key = list.map((c) => c.id).join(',');
+      if (key === talkKey) return;
+      talkKey = key;
+      const box = $('talkList');
+      const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
+      box.innerHTML = '';
+      if (!list.length) {
+        box.innerHTML = '<div class="talk-item" style="color:#56616f">暂未有人发言</div>';
+      } else {
+        list.forEach((c) => {
+          const d = document.createElement('div');
+          d.className = 'talk-item' + roleClass(c);
+          d.innerHTML = '<b>' + esc(whoText(c)) + '</b>' + esc(c.text)
+            + '<span class="t">' + esc(String(c.time || '').slice(11, 16)) + '</span>';
+          box.appendChild(d);
+        });
+      }
+      if (atBottom) box.scrollTop = box.scrollHeight;
+      $('talkCount').textContent = list.length ? list.length + ' 条' : '暂无发言';
+    }
+
+    async function pollTalk() {
+      if (!TOKEN) return;
+      try {
+        const res = await fetch('/api/comments?limit=80', { headers: hdr() });
+        if (authFailed(res)) return;
+        if (!res.ok) return;
+        const data = await res.json();
+        renderTalk(data.items || []);
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    async function sendTalk() {
+      const input = $('talkInput');
+      const text = input.value.trim();
+      if (!text) return;
+      if (!TOKEN) {
+        $('talkTip').textContent = '请先在首页登录后再发言';
+        return;
+      }
+      input.disabled = true;
+      try {
+        const res = await fetch(STAFF ? staffPostUrl() : '/api/comments', {
+          method: 'POST',
+          headers: hdr({ 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }),
+          body: new URLSearchParams({ text, kind: 'comment' }).toString()
+        });
+        const data = await res.json().catch(() => null);
+        if (authFailed(res)) return;
+        if (!res.ok) {
+          $('talkTip').textContent = (data && data.error) ? data.error : '发送失败';
+          return;
+        }
+        input.value = '';
+        $('talkTip').textContent = '';
+        pollTalk();
+      } catch (e) {
+        $('talkTip').textContent = '网络异常，稍后再试';
+      } finally {
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    // ---------- 赛事状态 / 快捷消息 ----------
+    async function pollContest() {
+      try {
+        const res = await fetch('/api/contest');
+        if (!res.ok) return;
+        const cs = await res.json();
+        contest = cs.status;
+        const tag = $('contestTag');
+        const map = { idle: '等待裁判开赛', countdown: '比赛即将开始', running: '比赛进行中', finished: '比赛已结束' };
+        tag.textContent = map[contest] || contest;
+        tag.classList.toggle('on', contest === 'running');
+        const open = !!TOKEN;
+        $('cheerSend').disabled = !open;
+        $('cheerText').disabled = !open;
+        if (!open) {
+          $('cheerHint').textContent = '请先登录观众身份后再发弹幕';
+        }
+        // 本场倒计时（裁判开赛时设置的赛制时长）
+        const rt = $('remainTag');
+        if (rt) {
+          if (contest === 'running' && cs.deadline && cs.remainMillis > 0) {
+            const s = Math.max(0, Math.round(cs.remainMillis / 1000));
+            const p = (v) => String(v).padStart(2, '0');
+            rt.textContent = '剩余 ' + p(Math.floor(s / 3600)) + ':' + p(Math.floor((s % 3600) / 60)) + ':' + p(s % 60);
+            rt.style.display = '';
+            rt.style.color = s <= 300 ? '#f85149' : '';
+          } else {
+            rt.style.display = 'none';
+          }
+        }
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    let quickSeen = new Set();
+    async function pollQuick(initial) {
+      try {
+        const res = await fetch('/api/quick');
+        if (!res.ok) return;
+        const data = await res.json();
+        (data.items || []).forEach((q) => {
+          const key = String(q.id);
+          if (quickSeen.has(key)) return;
+          quickSeen.add(key);
+          if (!initial) pushQuick(q);
+        });
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    $('cheerSend').onclick = cheer;
+    $('cheerText').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') cheer();
+    });
+    $('talkSend').onclick = sendTalk;
+    $('talkInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendTalk();
+    });
+
+    $('search').addEventListener('input', () => {
+      keyword = $('search').value.trim();
+      renderSide();
+    });
+
+    Array.from($('filters').children).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        filter = btn.getAttribute('data-f');
+        Array.from($('filters').children).forEach((b) => b.classList.remove('on'));
+        btn.classList.add('on');
+        renderSide();
+      });
+    });
+
+    if (TOKEN) {
+      if (ROLE === 'judge') {
+        $('meTag').textContent = '裁判 · 观赛视角';
+        if ($('cheerHint')) $('cheerHint').textContent = '以裁判身份发言，弹幕与讨论区会显示「裁判」头衔';
+        if ($('talkTip')) $('talkTip').textContent = '发言将带上「裁判」头衔';
+      } else if (ROLE === 'super') {
+        $('meTag').textContent = '总管 · 观赛视角';
+        if ($('cheerHint')) $('cheerHint').textContent = '以总管身份发言，弹幕与讨论区会显示「总管」头衔';
+        if ($('talkTip')) $('talkTip').textContent = '发言将带上「总管」头衔';
+      } else if (ROLE === 'admin') {
+        $('meTag').textContent = '管理员 · 观赛视角';
+        if ($('cheerHint')) $('cheerHint').textContent = '以管理员身份发言，弹幕与讨论区会显示「管理员」头衔';
+        if ($('talkTip')) $('talkTip').textContent = '发言将带上「管理员」头衔';
+      } else {
+        $('meTag').textContent = ROLE === 'viewer'
+          ? '观众' + MYNO
+          : '选手' + String(MYNO).padStart(2, '0') + ' · 观赛视角';
+      }
+    } else {
+      $('meTag').textContent = '未登录';
+      $('cheerHint').textContent = '请先登录观众身份后再发弹幕';
+    }
+
+    // 工作人员头像：显示真实身份（裁判=被指定的学号、总管=「总管」），
+    // 不再借用浏览器里残留的学生会话（以前会显示成「37」）
+    if (STAFF && TOKEN) {
+      fetch('/api/staff/me', { headers: { 'X-Token': TOKEN } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!d) return;
+          const anchor = $('avAnchor');
+          if (!anchor) return;
+          const badge = document.createElement('span');
+          badge.className = 'av-btn staff';
+          badge.title = d.label || '';
+          badge.textContent = d.avatar || d.label || '·';
+          anchor.parentNode.insertBefore(badge, anchor);
+        })
+        .catch(() => { });
+    }
+
+    load();
+    pollDanmaku();
+    pollTalk();
+    pollContest();
+    pollQuick(true);
+    pollTimers.push(setInterval(load, 3000));
+    pollTimers.push(setInterval(pollDanmaku, 2000));
+    pollTimers.push(setInterval(pollTalk, 4000));
+    pollTimers.push(setInterval(pollContest, 1500));
+    pollTimers.push(setInterval(() => pollQuick(false), 1500));
+    pollTimers.push(setInterval(() => {
+      if (!lastData) return;
+      renderSide();
+      if (selectedNo) {
+        showDetail(selectedNo);
+        // 作答中的用时每秒续走，只改这一个格子，避免整卡重建
+        const p = (lastData.items || []).find((x) => x.no === selectedNo);
+        const cell = $('dElapsed');
+        if (p && cell && p.state === 'coding') {
+          cell.textContent = hms(elapsedOf(p, Date.now()));
+        }
+      }
+    }, 1000));
+
+    // 「返回登录」必须真的退出：清掉学生令牌，否则首页 boot() 会把观众又重定向回 /watch
+    const back = $('backLogin');
+    if (back) {
+      back.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        if (window.AppSession) {
+          AppSession.clear();
+        } else {
+          try {
+            localStorage.removeItem('sort_platform_token');
+            localStorage.removeItem('sort_platform_role');
+            localStorage.removeItem('sort_platform_no');
+          } catch (e) { /* 隐私模式下没有 localStorage 也不影响跳转 */ }
+        }
+        location.href = '/';
+      });
+    }
+  </script>
+  <script src="avatar.js?v=20261112a"></script>
+</body>
+
+</html>
