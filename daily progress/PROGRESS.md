@@ -125,3 +125,30 @@
 
 - 明天第一件事：把 main.py 拆成分层——路由搬到 app/api/health.py，main.py 只保留"创建 app + 挂载 router"。
 - 验收标准：拆完仍能在 8000 端口访问 /api/health；main.py 里不再出现任何接口函数体；能脱稿说清"接口层只负责搬运、不负责决策"。
+---
+
+## Daily Progress
+
+### Today
+
+- 日期：2026-11-19（夜，跨到 11-20 凌晨）
+- 完成的功能：清单文档从"手改 docx"改为"json 数据源 + 渲染脚本"，重生成的 docx 与原文件 126 块逐块一致；建立每日困惑台账 OPEN-QUESTIONS.md；写完 app/models/analyze.py 五字段入参模型并通过三条验收；建立名词表 GLOSSARY.md（7 组约 100 词）
+- 新学会的概念：docx 可以被"数据源 + 渲染器"完整还原；Pydantic 的 ValidationError 在命令行与 HTTP 422 是同一套校验的两种表现；Field(default=/max_length=) 的写法；verdict = 判题结论（AC/WA/TLE/RE/CE）；路由地址由装饰器里的字符串决定，函数名不参与路由
+- 新增或修改的文件：tools/build_docs/checklist.json、build_checklist.py、README.md；寒假实习准备清单.docx；algoarena-ai-service/app/models/analyze.py；daily progress/OPEN-QUESTIONS.md；daily progress/GLOSSARY.md；CURRENT-STATUS.md
+- 测试命令：python -c 三条——正常构造 / 缺 verdict / error_message 传 501 字
+- 测试结果：正常输出 error_message=''；缺字段报 Field required；501 字报 String should have at most 500 characters
+- Git commit：b5562a4、38da75f、b65cac2、9bde722、7f7f9b1、6df9e0f（均已 push）
+
+### Problems
+
+- 遇到的问题：点 VS Code 右上角运行按钮跑 analyze.py 用了全局 Python 3.12，报 No module named 'pydantic'；另外直接运行 analyze.py 本身就不会有任何输出（文件里只有 import 和 class，没有 print）
+- 如何定位：看终端提示符有没有 (.venv)；用 python -c "import sys; print(sys.executable)" 打印解释器真实路径
+- 最终如何修复：激活 .venv 后用 python -c 主动构造对象来验证
+- 哪些问题仍未解决：VS Code 默认解释器仍是全局 Python312 未永久切换；check-commit.ps1 仍未注册进计划任务；OPEN-QUESTIONS 六条里仍五条待验证
+
+### Tomorrow
+
+- 明天必须交付的功能：diagnose.py（VERDICT_MAP + TEMPLATES + build_conclusion）；main.py 加 POST /api/analyze 并完成四项验收
+- 验收标准：命令行能对三种输入出三种不同结论；/docs 里能发请求拿到结论；空白源码返回 422；未知 verdict 归成 UNKNOWN 不崩
+- 需要复习的概念：归一化与兜底、截断与 truncated 标记、装饰器是登记动作、dict 与 JSON 的区别
+- 遗留待办：把 health 路由拆到 app/api/health.py，main.py 只保留"创建 app + 挂载 router"——这条是上一节排的，今晚未做
