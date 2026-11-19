@@ -12,16 +12,23 @@
   - `.gitignore` 已补全（.venv、缓存、数据文件、Word 锁文件、acl-report）；
   - 10-30 后产出分 4 次提交并 push 到 GitHub（master，与 origin 同步）；
   - `daily progress/PROGRESS.md` 已补 10-31→11-17 断更说明（期中考试 + 调整实习方向）与新排期。
-- 仓库当前 `git status` 仅剩 `寒假实习准备清单.docx` 一处未提交改动（WPS 打开后体积变动，待确认是否提交）。
+- 仓库 `git status` 现已干净；`寒假实习准备清单.docx` 的 ✅ 已提交（`749bf88`）。
+
+### 11/19 晚：M1 已提前起步
+
+- 目录骨架已建（`app/api`、`app/services`、`app/models`、`app/core`、`tests`，各含空 `__init__.py`）。
+- `GET /api/health` 已手写并跑通（`app/main.py`），已在 8000 端口浏览器验证，`/docs` 已看。
+- 清单文档改由脚本生成：`tools/build_docs/checklist.json`（内容源）+ `build_checklist.py`（渲染）→ 根目录 docx；**以后改清单不再手改 docx**。旧 `build_docs.py` 已改为只产出 `寒假实习准备清单-旧版存档.docx`，不再覆盖。
+- 提交：`b5562a4`（生成链路）、`38da75f`（docx 重生成），均已 push。
+- **每日未解决困惑台账：`daily progress/OPEN-QUESTIONS.md`** —— 开新对话先读它，逐条用代码验证。
 
 ## 二、下一步：M1 从哪开始（11/20–11/30，约 35h）
 
-按 `ROADMAP.md` 第四节 M1 清单执行，第一步是建目录骨架：
+M1 九项里已完成 2 项（建目录、`GET /api/health`），**当前卡在 `POST /api/analyze`**：
 
-- `app/api`、`app/services`、`app/models`、`app/core`、`tests`
-- 目录职责：
-  - `api` 路由/接口层；`services` 业务逻辑；`models` Pydantic 模型；`core` 配置/常量/工具；`tests` pytest 用例。
-- 紧接着：`GET /api/health`、`POST /api/analyze` 最小接口（先返回固定模板结论，不接模型）。
+- 已完成/进行中的分层约定：`models` 放入参模型、`services` 放纯业务规则（不 import fastapi）、`main.py` 只做"路由登记 + 搬运"。
+- 待手搓：`app/models/analyze.py`（五个字段：problem_id / source_code / language / verdict / error_message，后者 `Field(default="", max_length=500)`）→ `app/services/diagnose.py`（`build_conclusion`：verdict 归一化 + 未知兜底、源码截断 2000、报错截断 500，均带 truncated 标记）→ `POST /api/analyze`（空白源码主动 `raise HTTPException(422)`）。
+- 练习用的 `grade` 三个文件（models/services/main 内路由）在 analyze 全绿后删除，单独提交。
 
 **手搓/命令边界（红线）**：
 - 命令项：建目录、venv、装依赖、Git、跑测试、环境排障。
@@ -64,8 +71,8 @@
 - 数分重修考试时间；
 - 每周可到岗天数、可承诺最短实习时长；
 - DeepSeek 预算上限；
-- `寒假实习准备清单.docx` 那处未提交改动是否保留并提交；
-- 新服务目录名是否最终定为 `algoarena-ai-service`（用户曾想自定，英文小写连字符、不用空格中文）。
+- 新服务目录名是否最终定为 `algoarena-ai-service`（用户曾想自定，英文小写连字符、不用空格中文）；
+- `build_docs.py` 与仓库 docx 已漂移（章节从"阶段"重写为"里程碑"），M4 前统一改脚本后重跑三份（清单已改由新链路生成，简历与技术方案仍走旧脚本）。
 
 ## 七、开新对话怎么接
 
