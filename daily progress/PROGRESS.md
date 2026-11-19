@@ -105,3 +105,23 @@
 - M0（11/17–11/19）：完成 .gitignore、Git 分主题提交并 push、补本进度记录。
 - M1（11/20–11/30）：搭建 app 目录骨架，写最小 /api/health、/api/analyze 接口，Pydantic 入参校验，pytest 用例，SQL 基础练习。
 - 验收标准：每个阶段做完能脱稿讲清链路，代码本人手写；没跑通、没理解的内容不写进简历。
+---
+
+## Daily Progress
+
+### Today
+
+- 日期：2026-11-19
+- 完成的功能：在 algoarena-ai-service 下建 app/api、app/services、app/models、app/core、tests 五个分层目录（各含 __init__.py）；手写 app/main.py，跑通 GET /api/health，返回 200 + JSON；打开 /docs 确认 FastAPI 自动生成的接口文档里登记了这条路由；恢复被误删的 CURRENT-STATUS.md。
+- 新学会的概念：一次 HTTP 请求到响应的完整链路（浏览器 → 端口 → uvicorn 解析 → 查路由表 → 调函数 → 转 JSON 回传）；端口与路由表的关系；@app.get 是"登记动作"而不是普通语法；uvicorn 与 FastAPI 的分工（uvicorn 占端口收请求，FastAPI 负责算）；health check 探活接口的行业用途；Git 里"未追踪/暂存/提交"三层状态；VS Code 打开子目录时与父级仓库的关系。
+- 新增或修改的文件：algoarena-ai-service/app/main.py；app/__init__.py、app/api/__init__.py、app/core/__init__.py、app/models/__init__.py、app/services/__init__.py、tests/__init__.py；恢复 CURRENT-STATUS.md
+- 测试命令：python -m uvicorn app.main:app --reload
+  Invoke-WebRequest http://127.0.0.1:8010/api/health
+- 测试结果：/api/health 返回状态码 200，响应体 {"status":"ok","service":"algoarena-ai-service"}；/docs 页面可打开并列出该路由。
+- 卡在哪里：手敲时踩了三个错——from 写成 form、@app 写成 @qpp、路径写成 /app/health，分别对应"启动即炸""启动即炸""能启动但访问 404"，改完后通过；VS Code 解释器仍是全局 Python 3.12，未切到 .venv。
+- 未完成：POST /api/analyze、Pydantic 五字段校验、三个易漏点、.env 配置、pytest 用例、SQL、Pandas 全部未开始；本次改动尚未提交。
+
+### Tomorrow
+
+- 明天第一件事：把 main.py 拆成分层——路由搬到 app/api/health.py，main.py 只保留"创建 app + 挂载 router"。
+- 验收标准：拆完仍能在 8000 端口访问 /api/health；main.py 里不再出现任何接口函数体；能脱稿说清"接口层只负责搬运、不负责决策"。
