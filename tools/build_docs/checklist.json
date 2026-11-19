@@ -1,0 +1,2044 @@
+{
+ "source": "D:\\ai-engineering-roadmap\\寒假实习准备清单.docx",
+ "blocks": [
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "寒假实习准备清单",
+   "r": {
+    "b": true,
+    "z": 22.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "CENTER (1)"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "2026-11-17 可执行版 · 打开即可开工",
+   "r": {
+    "b": false,
+    "z": 11.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "CENTER (1)"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "大二 · 数据科学与大数据技术 · 目标：寒假拿到大模型应用 / Agent 开发实习",
+   "r": {
+    "b": false,
+    "z": 9.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "CENTER (1)"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "主投：泛联新安（120–150/天，3 天/周）　|　冲刺：新星项目（150–300/天）　|　第三顺位：万兴科技大数据开发（4–7K/月，本科可投，截止 12/27）",
+   "r": {
+    "b": false,
+    "z": 9.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "CENTER (1)"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "使用说明：从第六节「今天开始做什么」往下做；所有任务前有 ☐，做完打勾。内容与 ROADMAP.md 一致，以 ROADMAP.md 为唯一维护源。",
+   "r": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "CENTER (1)"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "一、先认清我的真实角色",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "sort_platform 是我和 AI agent 一起做的：我提需求、做测试、找漏洞、定位 bug，没有参与代码编写与修改。这不是缺点，但必须主动说清，不能包装成「我开发的」。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "我实际做的",
+     "面试怎么讲",
+     "价值在哪"
+    ],
+    [
+     "提需求、定义平台要解决什么",
+     "「我定义了选手和评委各自走哪条路径、判题结果怎么算」",
+     "产品判断力"
+    ],
+    [
+     "测出 bug（如 20 秒超时读流会卡死）",
+     "「这个坑是我测出来的，读流阻塞会让超时永远等不到」",
+     "能读懂 Java，且是自己发现的"
+    ],
+    [
+     "找到 4 个 P0 漏洞（任意文件读取、刷分）",
+     "「我发现了 /../data/state.tsv 可读全部账号密码」",
+     "真实系统里的安全性嗅觉"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "统一口径：需求、验收标准、缺陷定位是我；代码实现是我指挥 AI 完成的。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "二、时间账",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "每周 20–30 小时（工作日 2–3h × 4，周末 6–8h × 1–2）。期末周 12/26–01/10 降到 5–8h/周，只维护。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "区间",
+     "可用时数",
+     "唯一目标"
+    ],
+    [
+     "11/17 – 11/19（今天起 3 天）",
+     "~8h",
+     "M0：仓库上云、环境就绪、日期确认"
+    ],
+    [
+     "11/20 – 11/30",
+     "~35h",
+     "M1：最小 API + 读懂 Java + SQL 加权 + 第二项目启动"
+    ],
+    [
+     "12/01 – 12/10",
+     "~35h",
+     "M2：接大模型 + 降本"
+    ],
+    [
+     "12/11 – 12/18",
+     "~28h",
+     "M3：Agent + LangGraph 双实现 + 12/14 首投"
+    ],
+    [
+     "12/19 – 12/25",
+     "~15h",
+     "M4：面试材料 + 第二批投递"
+    ],
+    [
+     "12/26 – 01/10",
+     "~10h",
+     "期末：只维护"
+    ],
+    [
+     "01/11 起",
+     "—",
+     "寒假：实习 / 或转进阶 + 春招"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "为什么不是 8–10 周：按 8–10 周算，项目收尾会落在 2027-01-12 至 01-26；而寒假实习是 12 月投递、1 月初面试。原计划把做项目排在了投递之后。倒推：项目必须在 12/18 前能现场演示，往前只剩 5 周。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "三、JD 对标（四份原始 JD）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    4.25,
+    4.25,
+    4.25,
+    4.25
+   ],
+   "rows": [
+    [
+     "",
+     "主投 · 泛联新安",
+     "冲刺 · 新星项目",
+     "第三顺位 · 万兴科技"
+    ],
+    [
+     "岗位",
+     "大模型应用开发实习生",
+     "AI Agent 研发实习生",
+     "大数据开发实习生"
+    ],
+    [
+     "薪资",
+     "120–150/天",
+     "150–300/天",
+     "4–7K/月"
+    ],
+    [
+     "形态",
+     "3 天/周 × 3 个月",
+     "3 天/周 × 2 个月",
+     "长沙岳麓，27 届有转正"
+    ],
+    [
+     "硬门槛",
+     "本科，数据科学等相关专业 ✓",
+     "本科，Python/TS 独立开发",
+     "本科，计算机/软工/数据工程 ✓"
+    ],
+    [
+     "核心要求",
+     "支撑 Agent 构建、AI 工具设计开发测试、Python + 数据处理 + 数据库 + API、ML/DL 基础",
+     "Tool Calling、Memory、LangGraph 二次开发、RAG 流水线、MCP、GitHub 优质项目",
+     "ETL/ELT、Spark/Flink/Hive 之一、SQL 熟练、数仓分层 ODS/DWD/DWS/ADS"
+    ]
+   ],
+   "head": null,
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "万兴截止 2026-12-27，比另两家早，必须在 12/14 首批就投。它的 Spark/Flink 不学，只补 SQL 窗口函数 + 数仓分层概念，能答出「数据从哪来到哪去」即可。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "技术点频次与我的安排",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    4.25,
+    4.25,
+    4.25,
+    4.25
+   ],
+   "rows": [
+    [
+     "技术点",
+     "出现",
+     "结论",
+     "安排"
+    ],
+    [
+     "Function Calling / Tool Calling",
+     "3 份",
+     "必需",
+     "M3 核心"
+    ],
+    [
+     "Python",
+     "3 份",
+     "必需",
+     "M1 起贯穿"
+    ],
+    [
+     "大模型 API 调用",
+     "3 份",
+     "必需",
+     "M2"
+    ],
+    [
+     "RAG",
+     "4 份",
+     "必需",
+     "M3 最小原型"
+    ],
+    [
+     "SQL 熟练",
+     "3 份",
+     "必需（万兴首要条件）",
+     "M1 手写 SQL + 窗口函数"
+    ],
+    [
+     "LangChain / LangGraph",
+     "2 份",
+     "必需",
+     "M3 用 LangGraph 重写同一套工具"
+    ],
+    [
+     "Prompt 工程 / 效果评测",
+     "2 份",
+     "必需",
+     "M2 Prompt + M3 对比用例"
+    ],
+    [
+     "数据处理（Pandas/Numpy）",
+     "2 份",
+     "必需",
+     "M1 第二项目"
+    ],
+    [
+     "ML / DL 基础",
+     "1 份",
+     "主投必需",
+     "八股"
+    ],
+    [
+     "Memory / MCP",
+     "1 份",
+     "冲刺必需",
+     "寒假补，12/18 前只做概念"
+    ],
+    [
+     "Spark / Flink / Hive",
+     "1 份",
+     "第三顺位，不学",
+     "只补数仓分层概念"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "原规划写「LangGraph / RAG 只了解概念」是判断错误——现在 LangGraph 2 份、RAG 4 份列在任职要求里。已改为 M3 必学。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "四、算法刷题（25–30 题）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "语言 Python，每周 5 小时，穿插在 M1–M4。项目卡住当天可跳、不补；项目顺利就正常刷。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "为什么刷：大厂/正规公司笔试是通用关卡，手撕代码是便宜的加分点。但三份 Agent 岗 JD 里没有一个字提算法，所以不刷 Hard，只保 Easy + 高频 Medium。",
+   "r": {
+    "b": false,
+    "z": 9.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "题型",
+     "题量",
+     "验收"
+    ],
+    [
+     "数组与字符串（双指针、滑动窗口、哈希计数）",
+     "8–9",
+     "20 分钟内写出，边界（空、单元素、重复）考虑到位"
+    ],
+    [
+     "哈希表（两数之和、频次统计）",
+     "4–5",
+     "说清 O(n) 优化与空间换时间"
+    ],
+    [
+     "链表（反转、合并、判环）",
+     "4",
+     "手写指针操作，空节点处理说清"
+    ],
+    [
+     "二分查找（含边界变体）",
+     "4",
+     "循环条件与左右边界写对，说出何时不能用"
+    ],
+    [
+     "栈与队列（有效括号、单调栈入门）",
+     "3–4",
+     "口述思路与返回值"
+    ],
+    [
+     "基础树遍历（前中后序、层序）",
+     "2–3",
+     "写出基础遍历，说清递归返回值"
+    ],
+    [
+     "排序（快排分区、稳定性、复杂度）",
+     "理解即可",
+     "贴合 sort_platform 讲复杂度"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "刷法：每题先口述思路再写代码 → 写完讲时间/空间复杂度 → 想边界。错题记一页，同一题型错两次 = 回补。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "和项目的联系：sort_platform 就是排序算法测评平台，快排分区、稳定性这些考点你有真实讲述场景。",
+   "r": {
+    "b": false,
+    "z": 9.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "五、整体架构：只读消费，Java 零改动",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "sort_platform（Java，零改动）→ 只读提供题目 / 提交记录 / 判题结果（TSV）→ AI 诊断服务（Python，100% 亲手写）→ Agent 三工具：查题目 / 查历史提交 / 读源码",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "面试标准答法：「我没有改动 Java 判题核心，因为它承载真实教学数据，改错会污染历史记录。AI 服务只读消费判题结果，在 Python 侧做隔离。」",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "六、今天开始做什么（M0：11/17 – 11/19）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  确认三个日期：寒假起止、期末周（已按 12/26–01/10 排）、数分重修考试时间",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  用自己装的 Python 建 algoarena-ai-service 目录和 .venv，只装 fastapi / uvicorn / pytest / httpx，版本记进 requirements.txt",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  .gitignore 补全：.pytest_cache/、sort_platform/data*/、sort_platform-acl-report/、*.idea/、~$*.docx",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  把 10-30 之后的所有产出按逻辑分 3–4 次提交并 push（目前 18 天的东西全在工作区，没进 Git）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  PROGRESS.md 补一条「10-31 → 11-17 断更说明 + 新排期」",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M0 验收：git log 有新提交且 git status 干净；空项目里 python -c「import fastapi」能过。✅️",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "七、里程碑（完成一个勾一组）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M1 · 最小 API + 读懂 Java + SQL 加权（11/20 – 11/30，约 35h）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  建目录：app/api、app/services、app/models、app/core、tests",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  最小可用：GET /api/health、POST /api/analyze 返回固定模板结论（先不接模型）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  Pydantic 入参五个字段，纯空白源码返回 422",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  三个容易漏的点：源码截断真的生效、verdict 归一化 + 未知值兜底、error_message 长度上限",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  配置从 .env 读，加 .env.example；密钥永远不进代码",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  pytest 到 10 条：正常、缺字段、空白、超长、大小写、未知 verdict、坏 JSON、占位接口",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  SQL：MySQL 建两张表（提交记录、题解），手写 CRUD + 一次 join，看一次执行计划",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  SQL 加权（万兴向）：聚合函数、窗口函数（ROW_NUMBER/RANK）、数仓分层 ODS/DWD/DWS/ADS，各写一个小例子",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  第二项目启动：Pandas 清洗脚本——真实数据集，缺失值/异常值处理 + 分组聚合 + 边界测试",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M1 验收：脱稿讲清请求链路每一跳；10 条测试全绿；第二项目能跑出实际结果；SQL 三种查询能现场写。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "读懂 sort_platform（每周 3h，M1–M3 贯穿，不懂不写简历）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "只读 4 个文件，不读整个项目（5071 行会读垮你）。每个文件配 AI 逐段解释，自己用中文写一段 reads/文件名.md，记录「这文件干什么、我怎么看出来的」。写不出不算读懂。",
+   "r": {
+    "b": false,
+    "z": 9.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    4.25,
+    4.25,
+    4.25,
+    4.25
+   ],
+   "rows": [
+    [
+     "顺序",
+     "文件",
+     "读什么",
+     "停在哪"
+    ],
+    [
+     "①",
+     "CompileService.java",
+     "javac 怎么调、20 秒超时、drain 线程读输出",
+     "能解释为什么不能先 readAll"
+    ],
+    [
+     "②",
+     "JudgeApi.java",
+     "提交入口、入参、返回",
+     "能指出 HTTP 请求进来的第一行"
+    ],
+    [
+     "③",
+     "JudgeEngine.java",
+     "编译 → 执行 → 比对 → 出结果",
+     "能画出 AC/WA/TLE/RE 各在哪分支产生"
+    ],
+    [
+     "④",
+     "CaseCenter.java",
+     "评测点怎么存、怎么取",
+     "能说清「查题目」工具从哪拿数据"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "验收：不看代码，纸上画出「一次提交 → javac → 执行 → 比对评测点 → 落库」全流程，并指出 AI 服务从哪个文件取数据。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M2 · 接大模型 + 降本（12/01 – 12/10，约 35h）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  DeepSeek 真实调用：prompt 组装、超时、重试、异常兜底、返回解析",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  规则分流：CE / RE / WA / TLE 走模板，不调模型",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  哈希缓存：同源码 + 同判题结果命中即复用，第二次不产生调用",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  截断生效并记录（响应里能看出被截断过）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  token 与成本记录：单次调用的 prompt/completion token、估算费用",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  持久化用 JSON/CSV 文件（ORM 落库推迟到寒假）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  第二项目收尾：清洗结果输出 + 单测 + README",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M2 验收：同一条提交第二次不产生调用；超时仍返回可用结论；能当场报出单次 token 与成本。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M3 · Agent + 框架双实现 + 可演示（12/11 – 12/18，约 28h）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  原生 Function Calling 三工具：查题目、查历史提交、读源码；数据源用 sort_platform 真实 TSV（只读）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  LangGraph 重写同一套：用框架把同样三工具重搭一遍，对比代码量差异（对冲两份 JD）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  RAG 最小原型：题目文档 → 简单检索 → 拼进 prompt，看召回是否提升诊断准确率",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  15–20 条对比用例（普通 prompt vs 原生 Agent vs LangGraph 版），记录差异",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  演示录屏 1–2 分钟：提交 → 判题 → 诊断 → 工具调用",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  README 架构图 + 一键启动步骤",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  12/14（周一）首批投递——泛联新安 + 万兴科技",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M3 验收：能现场跑一遍全链路；三工具至少两个真实触发；能说清「原生实现 vs LangGraph」的取舍。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M4 · 面试材料 + 第二批投递（12/19 – 12/25，约 15h）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  60 秒自我介绍稿 + 3 分钟技术版（写出来，念熟，计时）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  项目深挖 8 问的答案稿（见第十一节）+ 角色说明",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  简历按事实对齐，带【目标】条目按完成情况改写或删除",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  投递台账跑起来，每投一家记一行",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  12/20（周日）第二批投递",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "M4 验收：自我介绍不看稿能在 55–65 秒讲完；随便抽一个项目问题能讲 2 分钟不卡。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "期末周（12/26 – 01/10，约 10h）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "只做三件：每周 1 次 Git 提交（维护）、回面试消息、刷 3–5 题。不开新功能，1/5 补投一批。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "寒假（01/11 起）",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "实习到位：以实习为主，项目只维护，每周记录学到的东西（给春招用）。未到位：补齐 MCP / Memory / 完整 RAG + Java 集成 + 春招投递。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "八、每周节奏（防断更）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "时点",
+     "动作",
+     "耗时"
+    ],
+    [
+     "每天收工",
+     "PROGRESS.md 记三行：做了什么 / 卡在哪 / 明天第一件事",
+     "5 分钟"
+    ],
+    [
+     "每周日",
+     "对一遍本清单勾选，没勾的写原因；git commit 至少 1 次",
+     "30 分钟"
+    ],
+    [
+     "每完成一个里程碑",
+     "脱稿讲一遍（录音），讲不顺的回去补",
+     "20 分钟"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "红线：连续两天没有 PROGRESS.md 记录 = 计划已失效，当天必须停下来重排。",
+   "r": {
+    "b": true,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "九、八股（必须能口述）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "模块",
+     "必背要点",
+     "程度"
+    ],
+    [
+     "Python 基础",
+     "可变/不可变、深浅拷贝、装饰器、生成器迭代器、异常、GIL、虚拟环境",
+     "口述 + 小例子"
+    ],
+    [
+     "Web / HTTP",
+     "请求方法、状态码、GET/POST、Cookie/Session、RESTful",
+     "说清一次请求到响应"
+    ],
+    [
+     "数据库",
+     "索引原理与失效、主外键、事务 ACID、join 类型、WHERE 与 HAVING、窗口函数、数仓分层",
+     "解释索引为什么快；能写窗口函数"
+    ],
+    [
+     "机器学习 / 深度学习",
+     "监督/无监督、训练与推理、回归/分类/聚类/决策树、过拟合与评估指标",
+     "口述概念与适用场景"
+    ],
+    [
+     "数据处理（Numpy / Pandas）",
+     "数组与向量化、表格读取/筛选/聚合、缺失值处理",
+     "能用 20 行完成一次真实清洗"
+    ],
+    [
+     "OS / 网络",
+     "进程线程、TCP/UDP、端口与进程关系",
+     "概念区别即可"
+    ],
+    [
+     "LLM / Agent",
+     "调用流程、prompt 组成、token 与上下文、Function Calling、RAG、幻觉、缓存/限流/重试",
+     "结合自己项目讲"
+    ],
+    [
+     "LangGraph / MCP",
+     "框架解决什么问题、与原生调用的区别、MCP 是什么协议",
+     "12/18 前：LangGraph 能跑；MCP 讲概念"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十、投递执行",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "批次",
+     "日期",
+     "目标"
+    ],
+    [
+     "首批",
+     "12/14（周一）",
+     "泛联新安 + 万兴科技（万兴截止 12/27，最急）"
+    ],
+    [
+     "二批",
+     "12/20（周日）",
+     "10–15 家，按首批反馈改简历措辞"
+    ],
+    [
+     "补投",
+     "01/05（周二）",
+     "期末后补投，可承诺完整寒假 + 开学后远程"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "投前必做 4 件事",
+   "r": {
+    "b": true,
+    "z": 11.5,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  确认岗位是否还在招——搜索结果的过期岗会误导（万兴「AI开发实习生」已下线）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  核对学历与届别——科大讯飞长沙岗要硕士，直接跳过",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  核对截止日期——万兴 2026-12-27，晚了就没机会",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  该岗要求的技术，简历上能对上；对不上就不投，别浪费一次面试机会",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十一、项目深挖 8 问（M4 前写出答案）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "双服务为什么拆开？拆开的代价是什么？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "怎么控制 DeepSeek 成本？缓存命中条件、规则分流边界、截断策略各是什么？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "Agent 工具调用流程是什么？调用失败 / 超预算 / 超时分别怎么处理？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "项目里哪几段是你独立写的？每一段的作用？（能指到具体文件具体行）",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "普通 prompt 与 Agent 在 15–20 条用例上的差异，具体数字是多少？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "原生 Function Calling 与 LangGraph 实现，你选哪个？为什么？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "RAG 在你的项目里解决了什么问题？召回不准怎么办？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "如果让你加记忆管理，你会怎么设计？",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "另加一问（必答，且要主动说）：sort_platform 里哪部分是你做的、哪部分不是？答：需求、验收标准、缺陷定位是我；代码实现是我指挥 AI 完成的。",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十二、拿到实习之后（前置准备收尾）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  确认到岗时间、每周天数、能否开学后延续——写进邮件，别只口头说",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  问清薪资结算方式、餐补/交通、是否需要自备电脑",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  准备学生证、身份证复印件、学信网学籍证明、银行卡",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  问清要不要签保密协议、实习协议，看清楚终止条件",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  通勤踩点一次，算好通勤时间，避免第一天迟到",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  入职前一周把项目 README 和演示录屏整理好，导师随时可能要看",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十三、材料清单（状态自己填）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    5.67,
+    5.67,
+    5.67
+   ],
+   "rows": [
+    [
+     "材料",
+     "要求",
+     "状态"
+    ],
+    [
+     "GitHub 主页",
+     "Pinned 放 AlgoArena；提交历史连续；不含 data 与 IDE 配置",
+     "☐"
+    ],
+    [
+     "演示录屏",
+     "1–2 分钟，全链路可看懂",
+     "☐"
+    ],
+    [
+     "简历",
+     "按 JD 重写版：简历初稿-2026-11-17.docx",
+     "☐"
+    ],
+    [
+     "自我介绍",
+     "60 秒 + 3 分钟，能脱稿",
+     "☐"
+    ],
+    [
+     "项目深挖答案稿",
+     "8 问 + 角色说明，每题 2 分钟",
+     "☐"
+    ],
+    [
+     "投递台账",
+     "每投一家一行",
+     "☐"
+    ],
+    [
+     "作品集文档",
+     "架构图、对比表、接口文档",
+     "☐"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十四、风险与降级",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "t",
+   "style": "Table Grid",
+   "widths": [
+    8.5,
+    8.5
+   ],
+   "rows": [
+    [
+     "风险",
+     "降级方案"
+    ],
+    [
+     "5 周做不完 M3",
+     "保原生 Agent（M1+M2），LangGraph 只跑通 demo，简历写「进行中」"
+    ],
+    [
+     "泛联新安没回音",
+     "万兴科技作为第三顺位顶上；新星项目作冲刺"
+    ],
+    [
+     "万兴问到 Spark/Flink",
+     "坦白没学过，讲 SQL 和数仓分层的理解；别硬编造"
+    ],
+    [
+     "LangGraph 学不动",
+     "退回原生实现 + 概念讲清楚，仍能过泛联新安这类 JD"
+    ],
+    [
+     "Java 读不懂",
+     "只读 CompileService + JudgeApi 两个文件，讲清边界即可"
+    ],
+    [
+     "大模型不稳定 / 欠费",
+     "规则模板兜底，演示流程不中断"
+    ],
+    [
+     "期末撞车",
+     "12/26 起只维护，宁可少投一批也不挂科"
+    ],
+    [
+     "12 月没投出去",
+     "寒假 1/11–2 月底第二个窗口，春招 3 月第三个"
+    ]
+   ],
+   "head": {
+    "b": true,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "cell": {
+    "b": false,
+    "z": 9.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   }
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十五、红线",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "代码必须自己写；AI 只做答疑、review、查文档，成品不直接进仓库。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "每个里程碑结束要能脱稿讲，讲不清 = 没完成，不许写进简历。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "学业红线优先：期末周与数分重修冲刺期主动降速。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "PROGRESS.md 连断两天，立即停下重排计划。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "Git 提交按里程碑分批，不攒到最后一次性提交。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "简历里带【目标】【待填】的内容，做完前不许删标记。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "List Number",
+   "t": "不把 sort_platform 说成自己写的；角色说明主动讲，不等被问。",
+   "r": {
+    "b": false,
+    "z": 10.0,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "十六、待确认（会改变排期）",
+   "r": {
+    "b": true,
+    "z": 14.0,
+    "f": "Times New Roman",
+    "ea": "微软雅黑"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  寒假准确起止日期（现按 01/11 起估算）",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  数分重修考试时间",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  每周能到岗几天、可承诺最短实习时长（泛联要求 3 天/周 × 3 个月，寒假只有 6 周，需确认开学后能否延续）",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  },
+  {
+   "k": "p",
+   "s": "Normal",
+   "t": "☐  DeepSeek 预算上限（决定对比用例能跑多少条）",
+   "r": {
+    "b": false,
+    "z": 10.5,
+    "f": "Times New Roman",
+    "ea": "宋体"
+   },
+   "align": "None"
+  }
+ ],
+ "page": {
+  "pw": 21.0,
+  "ph": 29.7,
+  "l": 2.0,
+  "r": 2.0,
+  "t": 1.9,
+  "b": 1.9,
+  "head": 1.27,
+  "foot": 1.27
+ }
+}
