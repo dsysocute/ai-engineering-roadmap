@@ -22,6 +22,11 @@ ai-engineering-roadmap/
 │   ├── Java学习攻略详解.pdf    # 学长 13 阶段 Java 路线原图
 │   └── images/                # 学长发的项目清单/参考简历截图
 │
+├── practice/                  # 语法/基础刷题练习（不是简历项目）
+│   ├── java-se/               # Java SE 练习
+│   ├── python/                # Python / FastAPI 小练习
+│   └── sql/                   # SQL 练习题与答案
+│
 ├── daily progress/            # 每日进度记录与未解决困惑台账
 │   ├── PROGRESS.md            # 每日进度日志
 │   ├── OPEN-QUESTIONS.md      # 待验证困惑
