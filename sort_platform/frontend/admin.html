@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台 · 排序算法测评平台</title>
+<link rel="stylesheet" href="style.css?v=20261112a">
+<style>
+  .adm-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 14px 4px;
+  }
+
+  .adm-form input {
+    height: 34px;
+    min-width: 240px;
+    padding: 0 11px;
+    font-size: 13px;
+    color: #c8d1da;
+    background: #0d1117;
+    border: 1px solid #242c37;
+    border-radius: 5px;
+    outline: none;
+  }
+
+  .adm-form input:focus { border-color: #2f81f7; }
+
+  .adm-form .good { color: #7ec8a0; }
+  .adm-form .bad { color: #ff8a80; }
+</style>
+</head>
+<body>
+
+<div id="loginView" class="admin-login">
+  <h1>后台 · 看榜</h1>
+  <input id="adminUser" type="text" placeholder="管理员账号（教师主口令登录可留空）" autocomplete="off">
+  <input id="adminPass" type="password" placeholder="管理口令">
+  <p class="msg" id="adminMsg"></p>
+  <button id="adminLoginBtn" class="btn primary block">进入</button>
+  <p class="tip" style="margin-top:14px;font-size:12px;color:#63707d;text-align:center;line-height:1.6">
+    被授予管理员权限的同学，账号填自己的学号、口令默认为该学号；教师可用主口令（账号留空）登录。
+  </p>
+</div>
+
+<div id="panelView" class="admin-wrap hidden">
+  <div class="admin-head">
+    <h1>成绩排行</h1>
+    <span class="meta" id="adminMeta"></span>
+    <span class="spacer"></span>
+    <button id="refreshBtn" class="btn">刷新</button>
+    <button id="clearAllBtn" class="btn danger">清空所有成绩</button>
+  </div>
+
+  <!-- 课堂讨论：与选手端实时同步，可删除不当发言、以管理员身份回复 -->
+  <div class="discuss-panel">
+    <div class="discuss-head">
+      <span>课堂讨论</span>
+      <span class="discuss-tip">与选手端实时同步 · 可删除发言</span>
+    </div>
+    <div class="danmaku-bar small">
+      <span class="danmaku-empty" id="adminDanmakuEmpty">暂无新消息</span>
+      <div class="danmaku-track" id="adminDanmakuTrack"></div>
+    </div>
+    <div class="discuss-list" id="adminCommentList">
+      <div class="comment-empty">暂无发言</div>
+    </div>
+    <div class="comment-form">
+      <input id="adminCommentInput" class="comment-input dark" maxlength="120" placeholder="以管理员身份发言，回车发送">
+      <label class="dm-check" title="勾选后发到弹幕区，带头衔在屏幕中间停留几秒">
+        <input type="checkbox" id="adminDanmaku"> 作为弹幕
+      </label>
+      <button id="adminCommentSend" class="comment-send">发送</button>
+    </div>
+  </div>
+
+  <!-- 账号管理：禁言 / 解禁（管理员处理选手与观众；封号、授管、裁判归总管） -->
+  <div class="panel">
+    <div class="admin-head">
+      <h2>账号管理</h2>
+      <span class="meta">禁言 / 解禁（管理员与裁判不能禁言，封号归总管）</span>
+      <span class="spacer"></span>
+      <a id="caseLink" class="btn" href="/case">举报 / 申诉处理</a>
+      <a id="watchLink" class="btn" href="/watch">进入观赛</a>
+      <button id="usersRefresh" class="btn">刷新名单</button>
+    </div>
+    <div id="usersBody" class="users-body">加载中…</div>
+  </div>
+
+  <div class="panel">
+    <div class="admin-head">
+      <h2>修改管理员口令</h2>
+      <span class="meta" id="passWho">—</span>
+    </div>
+    <div class="adm-form">
+      <input id="admOldPass" type="password" placeholder="原口令" autocomplete="off">
+      <input id="admNewPass" type="password" placeholder="新口令（4 ~ 20 位）" autocomplete="off">
+      <button id="admPassBtn" class="btn">确认修改</button>
+      <span class="meta" id="admPassTip"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="panelBody" class="empty">加载中…</div>
+  </div>
+
+  <div class="export">
+    成绩同时写入 <b>data/results.tsv</b> 与 <b>data/results.csv</b>，可用 Excel 直接打开。<br>
+    每次提交自动写入，服务重启后不受影响。效率状态显示【评测中】表示后台仍在执行大规模用例，请稍后刷新；
+    正确性未通过的记录显示【不评测】。
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let adminToken = '';
+let adminWho = '';
+
+/** 秒 → HH:MM:SS，编码时长列用 */
+function hms(sec) {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  const pad = (v) => String(v).padStart(2, '0');
+  return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
+}
+
+/** 拼 HTML 前必须转义：明细里有裁判填的违规事由，不能直接当 HTML 执行 */
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function doLogin() {
+  const username = $('adminUser').value.trim();
+  const password = $('adminPass').value.trim();
+  if (!password) return;
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams({ username, password }).toString()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $('adminMsg').textContent = data.error || '口令不对';
+      return;
+    }
+    adminToken = data.token;
+    adminWho = data.who || '';
+    sessionStorage.setItem('admin_token', adminToken);
+    sessionStorage.setItem('admin_who', adminWho);
+    if ($('caseLink')) $('caseLink').href = '/case?at=' + encodeURIComponent(adminToken) + '&role=admin';
+    if ($('watchLink')) $('watchLink').href = '/watch?at=' + encodeURIComponent(adminToken);
+    showPanel();
+  } catch (e) {
+    $('adminMsg').textContent = '无法连接后端';
+  }
+}
+
+async function load() {
+  const res = await fetch('/api/admin/results', {
+    headers: { 'X-Token': adminToken }
+  });
+  if (res.status === 401) {
+    sessionStorage.removeItem('admin_token');
+    location.reload();
+    return;
+  }
+  const data = await res.json();
+  $('adminMeta').textContent = '已提交 ' + data.total + ' 人 / 共 ' + data.users + ' 个账号';
+
+  if (!data.results.length) {
+    $('panelBody').className = 'empty';
+    $('panelBody').textContent = '暂无提交记录。';
+    return;
+  }
+
+  let html = '<table><tr>'
+    + '<th>名次</th><th>选手号</th><th>账号</th><th>总分</th>'
+    + '<th>编码时长</th><th>运行时长</th><th>基础分</th><th>编码速率分</th><th>效率分</th>'
+    + '<th>交卷时间</th><th>明细</th><th>操作</th>'
+    + '</tr>';
+  data.results.forEach((r, i) => {
+    // 正确性没过的不会再跑效率，直接标「不评测」，别显示成「评测中」
+    let effText, effClass;
+    if (!r.correct) {
+      effText = '不评测';
+      effClass = 'tag-bad';
+    } else if (r.efficiencyReady) {
+      effText = Number(r.efficiencyScore).toFixed(1);
+      effClass = 'tag-ok';
+    } else {
+      effText = '评测中';
+      effClass = 'tag-pending';
+    }
+    const runText = !r.correct ? '—'
+      : (r.efficiencyReady ? Number(r.runMillis).toFixed(1) + ' ms' : '评测中');
+    html += '<tr>'
+      + '<td class="num">' + (i + 1) + '</td>'
+      + '<td class="num">' + String(r.no).padStart(2, '0') + '</td>'
+      + '<td>' + esc(r.username) + '</td>'
+      + '<td class="num"><b>' + Number(r.score).toFixed(1) + '</b></td>'
+      + '<td class="num">' + hms(r.codingSeconds) + '</td>'
+      + '<td class="num">' + runText + '</td>'
+      + '<td class="num">' + Number(r.baseScore || 0).toFixed(1) + '</td>'
+      + '<td class="num">' + Number(r.codingScore || 0).toFixed(1) + '</td>'
+      + '<td class="num ' + effClass + '">' + effText + '</td>'
+      + '<td class="mono">' + esc(r.finishedAt) + '</td>'
+      + '<td class="detail">' + esc(r.detail) + '</td>'
+      + '<td><button class="del-mini" data-user="' + esc(r.username) + '">删除</button></td>'
+      + '</tr>';
+  });
+  html += '</table>';
+  $('panelBody').className = '';
+  $('panelBody').innerHTML = html;
+}
+
+function showPanel() {
+  $('loginView').classList.add('hidden');
+  $('panelView').classList.remove('hidden');
+  if (!adminWho) adminWho = sessionStorage.getItem('admin_who') || '';
+  $('passWho').textContent = adminWho === 'master'
+    ? '当前登录：主管理员（教师），口令请在 start.bat 中修改'
+    : ('当前登录：' + (adminWho || '管理员') + '，口令默认是你的学号');
+  if (adminWho === 'master') {
+    $('admPassBtn').disabled = true;
+  }
+  load();
+  startComments();
+  loadUsers();
+}
+
+$('adminLoginBtn').onclick = doLogin;
+$('adminPass').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin();
+});
+$('refreshBtn').onclick = load;
+
+// ---------------- 账号管理 ----------------
+
+function remainText(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s >= 86400) return Math.round(s / 86400) + ' 天';
+  if (s >= 3600) return Math.round(s / 3600) + ' 小时';
+  if (s >= 60) return Math.round(s / 60) + ' 分钟';
+  return s + ' 秒';
+}
+
+async function loadUsers() {
+  const box = $('usersBody');
+  box.textContent = '加载中…';
+  try {
+    const res = await fetch('/api/admin/users', { headers: { 'X-Token': adminToken } });
+    if (res.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      location.reload();
+      return;
+    }
+    const data = await res.json();
+    renderUsers(data.items || []);
+  } catch (e) {
+    box.textContent = '加载失败';
+  }
+}
+
+function renderUsers(items) {
+  const box = $('usersBody');
+  if (!items.length) {
+    box.textContent = '暂无账号';
+    return;
+  }
+  let html = '<table><tr><th>选手号</th><th>账号</th><th>身份</th><th>状态</th><th>操作</th></tr>';
+  items.forEach((u) => {
+    const isJudge = u.role === 'judge';
+    const isAdmin = u.role === 'admin' || isJudge;
+    const isStaff = isJudge || u.role === 'admin';
+    const tags = [];
+    tags.push('<span class="utag' + (u.online ? ' on' : '') + '">' + (u.online ? '在线' : '离线') + '</span>');
+    if (isJudge) tags.push('<span class="utag judge">裁判 · 高级管理员</span>');
+    if (isAdmin) tags.push('<span class="utag admin">管理员</span>');
+    if (u.banned) tags.push('<span class="utag bad">已封号</span>');
+    if (u.muteUntil && u.muteUntil > Date.now()) {
+      tags.push('<span class="utag warn">禁言 ' + remainText(u.muteUntil - Date.now()) + '</span>');
+    }
+    if (u.violations) tags.push('<span class="utag">违规 ' + u.violations + ' 次</span>');
+    if (u.finished) tags.push('<span class="utag ok">已完赛</span>');
+    html += '<tr class="' + (u.online ? 'on' : 'off') + '">'
+      + '<td class="num">' + String(u.no).padStart(2, '0') + '</td>'
+      + '<td>' + u.username + '</td>'
+      + '<td>' + (isJudge ? '裁判' : (u.player ? '选手' : '观众')) + '</td>'
+      + '<td class="utags">' + (tags.join(' ') || '<span class="utag">正常</span>') + '</td>'
+      + '<td class="uops">'
+      + (isStaff
+        ? '<button class="op-mini" data-op="report-staff" data-u="' + u.username + '">举报违规</button>'
+          + '<span class="utag">管理员/裁判不可禁言</span>'
+        : '<button class="op-mini" data-op="mute" data-u="' + u.username + '">禁言 30 分钟</button>'
+          + '<button class="op-mini" data-op="unmute" data-u="' + u.username + '">解禁</button>')
+      + (u.banned ? '<span class="utag bad">解封请到总管总控台</span>' : '')
+      + '</td></tr>';
+  });
+  html += '</table>';
+  box.innerHTML = html;
+}
+
+async function userOp(username, action) {
+  if (action === 'report-staff') {
+    const reason = prompt('举报该管理员/裁判的违规情况，写明时间与现象（会直接上报总管）');
+    if (!reason) return;
+    try {
+      const res = await fetch('/api/case/report', {
+        method: 'POST',
+        headers: { 'X-Token': adminToken, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: new URLSearchParams({ username, type: 'violation', reason }).toString()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || '上报失败'); return; }
+      alert('已上报总管，编号 #' + data.id);
+    } catch (e) { alert('无法连接后端'); }
+    return;
+  }
+  if (action === 'ban' && !confirm('封号后该账号无法登录，确定封禁 ' + username + '？')) return;
+  if (action === 'mute' && !confirm('对 ' + username + ' 禁言 30 分钟？')) return;
+  const params = { username, action };
+  if (action === 'mute') params.minutes = '30';
+  try {
+    const res = await fetch('/api/admin/user-op', {
+      method: 'POST',
+      headers: { 'X-Token': adminToken, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams(params).toString()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error || '操作失败');
+      return;
+    }
+    loadUsers();
+  } catch (e) {
+    alert('网络异常，操作失败');
+  }
+}
+
+$('usersRefresh').onclick = loadUsers;
+$('usersBody').addEventListener('click', (e) => {
+  const btn = e.target.closest ? e.target.closest('[data-op]') : null;
+  if (!btn) return;
+  userOp(btn.getAttribute('data-u'), btn.getAttribute('data-op'));
+});
+
+/**
+ * 清空全部成绩。
+ * 双击确认，防手滑；清完立刻刷新表格。
+ */
+$('clearAllBtn').onclick = async () => {
+  if (!confirm('确认清空所有提交记录？\n数据删除后无法恢复。')) {
+    return;
+  }
+  if (!confirm('再次确认：确认清空？')) {
+    return;
+  }
+  $('clearAllBtn').disabled = true;
+  try {
+    const res = await fetch('/api/admin/clear-all', {
+      method: 'POST',
+      headers: { 'X-Token': adminToken }
+    });
+    if (res.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      location.reload();
+      return;
+    }
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || '清空失败');
+      return;
+    }
+    alert(data.msg || '提交记录已清空');
+    load();
+    loadUsers();
+  } catch (e) {
+    alert('清空失败：' + e.message);
+  } finally {
+    $('clearAllBtn').disabled = false;
+  }
+};
+
+// ---------------- 课堂讨论（后台） ----------------
+
+let cmtPolling = null;
+let cmtKey = '';
+let cmtIndex = 0;
+const cmtSeen = new Set();
+
+/** "2026-11-11 02:46:01" → "02:46" */
+function clock(t) {
+  const m = String(t || '').match(/(\d{1,2}:\d{2}):\d{2}$/);
+  return m ? m[1] : '';
+}
+
+/** 发言者前缀：总管 / 裁判 / 管理员 / 选手05 / 观众·昵称 */
+function whoText(c) {
+  if (c.role === 'super') {
+    return '总管';
+  }
+  if (c.role === 'judge') {
+    return '裁判';
+  }
+  if (c.role === 'admin') {
+    return '管理员';
+  }
+  if (c.role === 'viewer') {
+    const nick = c.username && c.username !== '观众' ? '·' + c.username : '';
+    return '观众' + nick;
+  }
+  return '选手' + String(c.no).padStart(2, '0');
+}
+
+function roleClass(c) {
+  if (c.role === 'super') {
+    return ' from-super';
+  }
+  if (c.role === 'judge') {
+    return ' from-judge';
+  }
+  if (c.role === 'admin') {
+    return ' from-admin';
+  }
+  if (c.role === 'viewer') {
+    return ' from-viewer';
+  }
+  return '';
+}
+
+function renderComments(all) {
+  const items = all.filter((c) => c.kind !== 'danmaku');
+  const key = items.map((c) => c.id).join(',');
+  if (key === cmtKey) return;
+  const list = $('adminCommentList');
+  const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 36;
+  cmtKey = key;
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div class="comment-empty">暂无发言</div>';
+    return;
+  }
+  items.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'discuss-item';
+    const who = document.createElement('b');
+    who.className = c.role === 'super'
+      ? 'who-super'
+      : (c.role === 'judge' ? 'who-judge' : (c.role === 'admin' ? 'who-admin' : (c.role === 'viewer' ? 'who-viewer' : 'who-stu')));
+    who.textContent = whoText(c);
+    const txt = document.createElement('span');
+    txt.className = 'txt';
+    txt.textContent = c.text;
+    const t = document.createElement('span');
+    t.className = 't';
+    t.textContent = clock(c.time);
+    const del = document.createElement('button');
+    del.className = 'del-mini';
+    del.textContent = '删除';
+    del.addEventListener('click', () => removeComment(c.id));
+    row.appendChild(who);
+    row.appendChild(txt);
+    row.appendChild(t);
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  if (atBottom) list.scrollTop = list.scrollHeight;
+}
+
+function pushDanmaku(c) {
+  const track = $('adminDanmakuTrack');
+  if (!track) return;
+  const empty = $('adminDanmakuEmpty');
+  if (empty) empty.style.display = 'none';
+  const item = document.createElement('div');
+  item.className = 'danmaku' + roleClass(c);
+  item.textContent = whoText(c) + '：' + c.text;
+  item.style.animationDelay = (cmtIndex++ % 4) * 0.55 + 's';
+  track.appendChild(item);
+  item.addEventListener('animationend', () => {
+    item.remove();
+    if (!track.children.length && $('adminDanmakuEmpty')) $('adminDanmakuEmpty').style.display = '';
+  });
+}
+
+async function loadComments(initial) {
+  try {
+    // 必须带管理员令牌：/api/comments 只认登录会话或裁判/总管/管理员令牌
+    const res = await fetch('/api/comments?limit=60', { headers: { 'X-Token': adminToken } });
+    if (res.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      location.reload();
+      return;
+    }
+    if (!res.ok) {
+      return;
+    }
+    const data = await res.json();
+    const items = data.items || [];
+    renderComments(items);
+    items.forEach((c) => {
+      const id = String(c.id);
+      if (!cmtSeen.has(id)) {
+        cmtSeen.add(id);
+        if (!initial && c.kind === 'danmaku') pushDanmaku(c);
+      }
+    });
+  } catch (e) {
+    // 后端没起或者网络抖动，下一轮再拉
+  }
+}
+
+function startComments() {
+  if (cmtPolling) return;
+  cmtSeen.clear();
+  cmtKey = '';
+  loadComments(true);
+  cmtPolling = setInterval(() => loadComments(false), 2000);
+}
+
+async function postAdminComment() {
+  const input = $('adminCommentInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const asDanmaku = $('adminDanmaku') && $('adminDanmaku').checked;
+  input.disabled = true;
+  try {
+    const res = await fetch('/api/admin/comment-post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Token': adminToken },
+      body: new URLSearchParams({ text, kind: asDanmaku ? 'danmaku' : 'comment' }).toString()
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      location.reload();
+      return;
+    }
+    if (!res.ok) {
+      alert(data.error || '发送失败');
+      return;
+    }
+    input.value = '';
+    if (asDanmaku && $('adminDanmaku')) $('adminDanmaku').checked = false;
+    loadComments(false);
+  } catch (e) {
+    alert('发送失败：' + e.message);
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+async function removeComment(id) {
+  if (!confirm('删除这条发言？')) return;
+  try {
+    const res = await fetch('/api/admin/comment-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Token': adminToken },
+      body: new URLSearchParams({ id: String(id) }).toString()
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      location.reload();
+      return;
+    }
+    if (!res.ok) {
+      alert(data.error || '删除失败');
+      return;
+    }
+    cmtKey = '';
+    loadComments(false);
+  } catch (e) {
+    alert('删除失败：' + e.message);
+  }
+}
+
+/** 删除单个选手的成绩：仅影响这一个人，其他人名次自动重排 */
+async function deleteResult(username) {
+  if (!confirm('删除选手 ' + username + ' 的成绩？\n该选手可重新开始作答，其他选手成绩不受影响。')) {
+    return;
+  }
+  try {
+    const res = await fetch('/api/admin/delete-one', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Token': adminToken },
+      body: new URLSearchParams({ username }).toString()
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      location.reload();
+      return;
+    }
+    if (!res.ok) {
+      alert(data.error || '删除失败');
+      return;
+    }
+    // 账号列表里的「已完赛」标记也要一起刷新
+    load();
+    loadUsers();
+  } catch (e) {
+    alert('删除失败：' + e.message);
+  }
+}
+
+$('adminCommentSend').onclick = postAdminComment;
+$('adminCommentInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') postAdminComment();
+});
+
+$('panelBody').addEventListener('click', (e) => {
+  const btn = e.target.closest('.del-mini');
+  if (btn) deleteResult(btn.dataset.user);
+});
+
+// ---------------- 改口令 ----------------
+
+/** 管理员自助改口令：原口令 + 新口令 */
+async function changeAdminPass() {
+  const oldPass = $('admOldPass').value.trim();
+  const newPass = $('admNewPass').value.trim();
+  const t = $('admPassTip');
+  if (!oldPass || !newPass) {
+    t.textContent = '原口令和新口令都要填';
+    t.className = 'meta bad';
+    return;
+  }
+  $('admPassBtn').disabled = true;
+  try {
+    const res = await fetch('/api/admin/pass', {
+      method: 'POST',
+      headers: { 'X-Token': adminToken, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams({ oldPass, newPass }).toString()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      t.textContent = data.error || '修改失败';
+      t.className = 'meta bad';
+      return;
+    }
+    t.textContent = '管理员口令已修改，下次登录请用新口令';
+    t.className = 'meta good';
+    $('admOldPass').value = '';
+    $('admNewPass').value = '';
+  } catch (e) {
+    t.textContent = '网络异常，修改失败';
+    t.className = 'meta bad';
+  } finally {
+    $('admPassBtn').disabled = adminWho === 'master';
+  }
+}
+
+$('admPassBtn').onclick = changeAdminPass;
+$('adminUser').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin();
+});
+
+const saved = sessionStorage.getItem('admin_token');
+if (saved) {
+  adminToken = saved;
+  showPanel();
+}
+</script>
+</body>
+</html>

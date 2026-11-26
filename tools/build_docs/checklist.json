@@ -1,0 +1,510 @@
+{
+  "source": "D:\\ai-engineering-roadmap\\项目与实习准备清单.docx",
+  "blocks": [
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "项目与实习准备清单",
+      "r": { "b": true, "z": 22.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "CENTER (1)"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "2026-11-26 修订版 · AI 全栈方向（主轨就业，备选考研兜底）",
+      "r": { "b": false, "z": 11.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "CENTER (1)"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "大二 · 数据科学与大数据技术 · 全周期路线：工程底座 → 第一段实习破零（2027 暑假）→ 内功与后端深化 → 第二段实习 → 秋招 / 考研兜底",
+      "r": { "b": false, "z": 9.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "CENTER (1)"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "使用说明：从第五节里程碑往下做；所有任务前有 ☐，做完打勾。内容与 ROADMAP.md 一致，以 ROADMAP.md 为唯一维护源。",
+      "r": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" },
+      "align": "CENTER (1)"
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "一、路线定位",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "1. 2026.11 – 2027.06（大二上末 – 大二下）：工程底座 + 电商 Java 后端 + 前端联调 + AI 全栈 Demo，春末投第一段实习破零。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "2. 2027 暑假：第一段实习，AI 全栈 / 全栈 / 后端均可，攒真实交付经历，不挑单一名头。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "3. 大三上：OS/计网内功 + 后端深化（Java SSM/Spring Boot/Redis，Python FastAPI），10 月起投第二段实习；大三下打磨 1–2 个高质量项目再投递。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "4. 2028 暑假第二段实习；大四上 8–11 月秋招，12 月底考研初试作兜底，不把 offer 押在单一 return 上。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "基本判断：全栈实习要求一门后端主语言扎牢 + 前端能做页面和联调 + 能把大模型接进业务，不是前后端都精通；底座（Python/Java、SQL、API/后端、调试）可迁移。不押单一岗位名头，能讲清可靠性、兜底、数据边界和效果验证才有竞争力。副业只做低成本验证，不占主线；学业红线优先，待重修科目先过掉。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "项目取舍：电商 Java 项目继续做（课堂作业 + 学长推荐项目，主线练手）；AI 全栈 Demo 作为 AI 能力证据；AlgoArena 排序平台搁置备查，代码保留、不推进、未跑通部分不进简历。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "二、时间账",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "t",
+      "style": "Table Grid",
+      "widths": [5.67, 5.67, 5.67],
+      "rows": [
+        ["区间", "阶段", "唯一目标"],
+        ["2026.11 – 12（当前）", "阶段 0 · 底座起步", "Python/Java/SQL 底座；电商项目梳理；SQL 基础练习"],
+        ["2026.12 下旬 – 2027.01（寒假）", "底座 + Java SE + 前端入门", "Python/Java/SQL 回补；静态页改可交互组件，调通一个后端接口"],
+        ["2027.02 – 04（大二下）", "后端深化 + 数据管线 + AI 应用 + 全栈页面", "数据清洗项目成型；接大模型降本；工具调用 Demo；前端联调跑通"],
+        ["2027.05 – 06", "材料 + 投第一段实习", "简历/自我介绍/台账分批投递，破零优先"],
+        ["2027.07 – 08（大二暑假）", "第一段实习破零", "接完整小任务，留交付记录和实习评价"],
+        ["2027.09 – 2028.01（大三上）", "内功 + 后端深化 + 二段投递", "OS/计网补基础；SSM/Spring Boot/Redis 看懂实践；10 月起投"],
+        ["2028.02 – 06（大三下）", "项目收口 + 再投递", "1–2 个能讲清原理的项目；3–5 月再投第二段实习"],
+        ["2028.07 – 08（大三暑假）", "第二段实习", "AI 全栈 / 全栈，争取 return 或秋招备选"],
+        ["2028.09 – 12（大四上）", "秋招 / 考研兜底", "两段实习 + 项目收口；秋招 8–11 月，考研 12 月底初试"]
+      ],
+      "head": { "b": true, "z": 9.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "cell": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" }
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "每周投入：学期内 15–20h（工作日 1–2h × 4，周末 4–6h）；期末周和重修冲刺降到只维护。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "三、岗位要求对标（2026 在招 JD 提取）",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "AI 全栈 / 全栈开发实习（主目标）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "一门主语言（Python/Java/Go/Node/TS 至少一门）+ 数据结构算法；后端 RESTful 接口、框架、SQL、校验异常、测试；前端 HTML/CSS/JS + React 或 Vue 一种框架，能做页面并联调；AI 应用：LLM API、Prompt、RAG、工具调用、流式输出；需求拆解到联调演示全流程，重度用 AI Coding 工具并能审查代码。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "后端开发实习（兜底方向）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "编程能力 + 数据结构与基础算法，Python/Java 至少一门；FastAPI/Flask 或 Java 框架做过 API 设计；大模型 API、Prompt/Context、Function Calling、RAG；有落地项目，能讲工具调用、失败案例和效果验证；GitHub 高质量项目加分。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "实习不要求（社招 / 毕业前再补）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "模型训练 / 微调 / 推理优化、高并发分布式、微服务 / K8s、多端跨端、Rust/WASM，实习阶段只留概念了解，不提前深入。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "Java 阶梯（作为后端学习骨架）：Java SE 入门 → Java 核心（OOP/集合/IO/Maven）→ MySQL/JDBC → 前端基础 → 原生 Web（Servlet/Tomcat）→ SSM → Spring Boot 前后分离 → Redis/MQ/MongoDB。近期只到 SE 核心 + JDBC + Spring Boot 入门；SSM/中间件大三实践；Spring Cloud、分布式架构、ES、K8s、大数据后置为毕业画像。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "竞赛加分线（待核验）：长期力扣/洛谷刷题服务笔试机试；蓝桥杯、CCF CSP、PAT 甲级为备选，报名前核对当年官方通知与校内目录，不承诺获奖；ACM 当前阶段不参与。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "四、项目取舍",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "主线：电商 Java 项目（作业 + 学长推荐范畴），核心业务手写，练实体建模 / CRUD / 校验 / 库存流程；AI 全栈 Demo（Python 后端 + 前端页面 + AI 链路），业务接口、校验、测试断言自己写；数据清洗管线作为 SQL 与数据处理证据。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "搁置备查：AlgoArena 排序平台（老 sort_platform + algoarena-ai-service）代码保留、不推进、不占主线时间；未跑通、未理解的部分不进简历。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "后置 / 砍掉：ORM 落库先用 JSON/CSV 持久化；Docker、Spark/Flink/Hive 调优只补概念；不追求前端复杂工程化与多端；AI Demo 不做记忆管理、多 Agent 编排、生产级向量库、线上部署、模型训练微调；AI 只答疑、review、查文档，成品不直接进仓库。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "五、里程碑",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "阶段 0 · 底座起步 + 电商梳理（当前，2026.11 – 12）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  Python 基础回补：函数、异常、模块、虚拟环境；FastAPI 跑通一个 health 接口并自测", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  Java SE 起步：类、对象、OOP、集合、方法封装；配合电商作业", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  SQL：两张表 + CRUD + join + 执行计划；聚合/HAVING、窗口函数、数仓分层各一例", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  电商项目梳理：业务实体、表结构、核心流程（下单 / 库存 / 校验），先出需求与表设计", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  数据清洗脚本启动：缺失 / 异常 / 聚合 / 边界测试", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "阶段 0 验收：SQL 三种查询能现场写；电商表结构与核心流程脱稿讲清；Python 一个接口跑通并自测。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "阶段 1 · 底座 + Java SE + 前端入门（2026.12 下旬 – 2027.01，寒假半速）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  HTML/CSS 页面结构与样式；JS 变量/函数/数组对象/异步基础；TS 类型标注", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  Vue3（或 React）基础：组件、状态、props、列表渲染、事件", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  把静态表单/列表页改成可交互组件，调通一个后端接口", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  Java 基础回补：类、对象、集合、方法封装；配合电商作业", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "阶段 1 验收：独立写出可交互页面并调通后端接口；讲清组件/状态/接口契约概念；Java 过 OOP/集合。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "阶段 2 · 后端深化 + 数据管线 + Spring Boot 入门（2027.02 – 03）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  数据清洗：读入 → 清洗 → 分层 → 指标输出；单测 + README", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  后端补：接口设计、错误码、日志、配置；pytest 覆盖边界", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  Java 进阶：JDBC 流程、Maven 概念；Spring Boot 写一组 CRUD 接口；Redis/MQ/MongoDB 概念入门", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "阶段 2 验收：数据管线可复现；核心接口有测试；Java 跑通简单 CRUD；口述中间件场景。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "阶段 3 · 接大模型 + 降本（2027.03）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  真实模型调用：prompt 组装、超时、重试、异常兜底、返回解析", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  规则分流：明确不适合大模型的请求走模板 / 规则，不调模型", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  哈希缓存：同问题 + 同上下文命中复用，第二次不产生调用", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  截断记录、token 与成本记录（单次 prompt/completion token、估算费用）", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "阶段 3 验收：同一问题第二次不产生调用；超时仍返回可用结论；能当场报出单次 token 与成本。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "阶段 4 · AI Demo 工具调用 + RAG 最小原型 + 全栈页面（2027.04）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  原生 Function Calling 三工具：围绕 Demo 场景（查商品 / 查历史 / 读文档），数据源用本地库或 CSV", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  同一套工具调用用 LangGraph 重写一遍，对比两者取舍（学不动退回原生）", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  RAG 最小原型：业务文档 → 简单检索 → 拼进 prompt，验证召回是否改善回答质量", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  15–20 条对比用例（普通 prompt / 工具调用版 / RAG 版），记录差异", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  前端页面：提交问题 → 调后端接口 → 展示 AI 结论；错误 / 加载态", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  README 架构图 + 一键启动；演示录屏 1–2 分钟", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "阶段 4 验收：现场跑一遍全链路；工具至少两个真实触发；前后端联调跑通；能讲清原生实现 vs 框架的取舍。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "阶段 5 · 材料 + 投第一段实习（2027.05 – 06）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  60 秒自我介绍 + 3 分钟技术版，写出来、念熟、计时", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  项目深挖 8 问答案稿 + 角色说明", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  简历按事实对齐；带【目标】【待填】条目做完前不删标记", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  投递台账跑起来；春末分批投 2027 暑假实习", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "阶段 5 验收：自我介绍不看稿能在 55–65 秒讲完；随便抽一个项目问题能讲 2 分钟不卡。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "后续阶段（不在本学期排期）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  阶段 6（2027 暑假）：第一段实习，接完整小模块，留交付记录与复盘", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  阶段 7（大三上）：OS/计网内功；SSM/Spring Boot/Redis/MQ 看懂实践；10 月起投第二段实习", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  阶段 8（大三下）：1–2 个高质量项目复现/优化；3–5 月再投递；评估就业 / 考研方向", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  阶段 9（大四上）：第二段实习 → 秋招 8–11 月；考研 12 月底初试作兜底", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "六、AlgoArena 搁置备查（不占主线时间）",
+      "r": { "b": true, "z": 11.5, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "老 sort_platform（JDK 17 纯 Java + 原生 HTML/JS/CSS + TSV/CSV 文件存储，端口 8080）与 algoarena-ai-service（Python 3.13 + FastAPI + pytest）均保留在仓库，当前不推进。重启条件：主线电商项目与 AI Demo 收口后，有余力再评估；未跑通、未理解的部分不进简历。",
+      "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" },
+      "align": "None"
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "七、算法刷题（25–30 题）",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "t",
+      "style": "Table Grid",
+      "widths": [5.67, 5.67, 5.67],
+      "rows": [
+        ["题型", "题量", "验收"],
+        ["数组与字符串（双指针、滑动窗口、哈希计数）", "8–9", "20 分钟内写出，边界考虑到位"],
+        ["哈希表（两数之和、频次统计）", "4–5", "说清 O(n) 优化与空间换时间"],
+        ["链表（反转、合并、判环）", "4", "手写指针操作，空节点处理说清"],
+        ["二分查找（含边界变体）", "4", "循环条件与左右边界写对，说出何时不能用"],
+        ["栈与队列（有效括号、单调栈入门）", "3–4", "口述思路与返回值"],
+        ["基础树遍历（前中后序、层序）", "2–3", "写出基础遍历，说清递归返回值"],
+        ["排序（快排分区、稳定性、复杂度）", "理解即可", "能口述分区过程与复杂度"]
+      ],
+      "head": { "b": true, "z": 9.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "cell": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" }
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "八、八股（必须能口述）",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "t",
+      "style": "Table Grid",
+      "widths": [5.67, 5.67, 5.67],
+      "rows": [
+        ["模块", "必背要点", "程度"],
+        ["Python 基础", "可变/不可变、深浅拷贝、装饰器、生成器迭代器、异常、GIL、虚拟环境", "口述 + 小例子"],
+        ["Java 基础", "面向对象、集合、类与对象、方法封装、String 不可变；JDBC/Maven 概念；大三后补 SSM/Spring Boot/Redis/MQ", "近期口述 + 作业举例；框架与中间件大三深化"],
+        ["Web / HTTP", "请求方法、状态码、GET/POST、Cookie/Session、RESTful", "说清一次请求到响应"],
+        ["前端基础", "HTML/CSS/JS 概念、组件/状态/props、接口调用、跨域、流式输出概念", "结合页面讲"],
+        ["数据库", "索引原理与失效、主外键、事务 ACID、join 类型、WHERE 与 HAVING、窗口函数、数仓分层", "解释索引为什么快；能写窗口函数"],
+        ["数据处理（Numpy / Pandas）", "数组与向量化、表格读取/筛选/聚合、缺失值处理", "能用 20 行完成一次真实清洗"],
+        ["OS / 网络", "进程线程、内存管理、TCP/UDP、握手挥手、HTTP/HTTPS、端口与进程关系", "大三上按课程补到口述 + 举例"],
+        ["LLM 应用", "调用流程、prompt 组成、token 与上下文、Function Calling、RAG、幻觉、缓存/限流/重试", "结合自己项目讲"],
+        ["LangGraph / MCP", "框架解决什么问题、与原生调用的区别、MCP 是什么协议", "LangGraph 能跑通；MCP 讲概念"]
+      ],
+      "head": { "b": true, "z": 9.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "cell": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" }
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "九、投递执行",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "t",
+      "style": "Table Grid",
+      "widths": [5.67, 5.67, 5.67],
+      "rows": [
+        ["批次", "时间", "目标"],
+        ["第一份实习", "2027 春末（3–5 月）", "AI 全栈 / 全栈 / 后端均可，破零优先"],
+        ["第二段实习", "2028 春", "AI 全栈 / 全栈，带第一份实习和两个项目"],
+        ["转正 / 秋招", "2028 秋", "return + 校招并行"]
+      ],
+      "head": { "b": true, "z": 9.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "cell": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" }
+    },
+    { "k": "p", "s": "Normal", "t": "渠道：BOSS 直聘、拉钩、智联、牛客、实习僧、offer show、大厂官网；校友 / 学长内推、老师推荐、校内群。", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "投前必做 4 件事：① 确认岗位是否还在招；② 核对学历与届别，要求硕士的岗跳过；③ 核对截止日期；④ 该岗要求的技术简历上能对上，对不上不投。", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "台账字段：公司 / 岗位 / 渠道 / 投递日 / 状态 / 面试时间 / 面试问了什么 / 复盘一句话。", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "十、材料清单（状态自己填）",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "t",
+      "style": "Table Grid",
+      "widths": [5.67, 5.67, 5.67],
+      "rows": [
+        ["材料", "要求", "状态"],
+        ["GitHub 主页", "Pinned 放电商项目与 AI Demo；提交历史连续；不含 data 与 IDE 配置", "☐"],
+        ["演示录屏", "1–2 分钟，全链路可看懂", "☐"],
+        ["简历", "按 JD 重写版，事实对齐", "☐"],
+        ["自我介绍", "60 秒 + 3 分钟，能脱稿", "☐"],
+        ["项目深挖答案稿", "8 问 + 角色说明，每题 2 分钟", "☐"],
+        ["投递台账", "每投一家一行", "☐"],
+        ["作品集文档", "架构图、对比表、接口文档", "☐"]
+      ],
+      "head": { "b": true, "z": 9.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "cell": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" }
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "十一、项目深挖 8 问（阶段 4 前写出答案）",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "List Number", "t": "电商项目：核心业务流程是什么？实体怎么建模？表之间什么关系？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "电商项目：下单 / 库存 / 校验里，哪一段是你独立写的？作用是什么？（能指到具体文件）", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "电商项目：哪些校验、异常、边界情况你处理了？出过什么 bug，怎么定位的？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "AI Demo：怎么控制模型成本？缓存命中条件、规则分流边界、截断策略各是什么？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "AI Demo：工具调用流程是什么？调用失败 / 超预算 / 超时分别怎么处理？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "AI Demo：普通 prompt、工具调用版、RAG 版在 15–20 条用例上的差异，具体数字是多少？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "AI Demo：原生 Function Calling 与框架（LangGraph）实现，你选哪个？为什么？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "前端页面怎么调后端接口？联调时问题怎么定位？", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "另加一问（必答，主动说）：项目里哪部分是我做的、哪部分借助了 AI？答：需求拆解、验收标准、缺陷定位、业务代码与测试断言是我；AI 只做答疑、review、查文档。", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "十二、风险与降级",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    {
+      "k": "t",
+      "style": "Table Grid",
+      "widths": [8.5, 8.5],
+      "rows": [
+        ["风险", "降级方案"],
+        ["AI Demo 做不完", "保后端接口 + 原生工具调用，RAG / 框架只跑通 demo，简历写「进行中」"],
+        ["前端学不动", "先保静态页 + 调通一个接口；复杂组件工程化后置，不影响后端 / 全栈岗投递"],
+        ["第一份实习没回音", "扩大到后端 / 中小厂，先破零；不押全栈岗"],
+        ["框架学不动", "退回原生实现 + 概念讲清楚，仍能过应用类 JD"],
+        ["大模型不稳定 / 欠费", "规则模板兜底，演示流程不中断"],
+        ["期末 / 重修撞车", "主动降速，宁可少投一批也不挂科"],
+        ["两段实习偏弱、项目讲不明白、题量不足", "评估考研提升学历；或降目标中小厂 / 国企岗，不硬冲中大厂"],
+        ["走考研兜底", "大四上 12 月底初试；补计组（刘宏伟 / CSAPP）、C++ 基础；英语数学不断线；科目以目标院校公告为准"]
+      ],
+      "head": { "b": true, "z": 9.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "cell": { "b": false, "z": 9.0, "f": "Times New Roman", "ea": "宋体" }
+    },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "十三、红线",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "List Number", "t": "代码必须自己写；AI 只做答疑、review、查文档，成品不直接进仓库。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "每个里程碑结束要能脱稿讲，讲不清 = 没完成，不许写进简历。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "学业红线优先：期末周与重修冲刺期主动降速。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "PROGRESS.md 连断两天，立即停下重排计划。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "Git 提交按里程碑分批，不攒到最后一次性提交。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "简历里带【目标】【待填】的内容，做完前不许删标记。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "List Number", "t": "不把搁置的 AlgoArena 写成自己独立完成的项目；角色与 AI 辅助边界主动讲，不等被问。", "r": { "b": false, "z": 10.0, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+
+    {
+      "k": "p",
+      "s": "Normal",
+      "t": "十四、待确认",
+      "r": { "b": true, "z": 14.0, "f": "Times New Roman", "ea": "微软雅黑" },
+      "align": "None"
+    },
+    { "k": "p", "s": "Normal", "t": "☐  数分重修考试时间与通过情况", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  2027 暑假可到岗天数、可承诺最短实习时长", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  模型 API 预算上限（决定对比用例能跑多少条）", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  AI 全栈 Demo 的具体数据集与场景（商品问答 / 评论分析 / 知识库问答 / 个人工具助手）", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  前端框架最终选型（Vue3 起步 / 直接 React，按目标岗位再定）", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  是否报名蓝桥杯 / CSP（核对当年官方通知与校内目录后再定）", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  考研倾向程度与目标方向（决定大三下就业 / 升学投入比例）", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  目标城市与远程接受度", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" },
+    { "k": "p", "s": "Normal", "t": "☐  简历待补：电话、邮箱、GitHub、演示链接、项目起止时间（以成绩单为准）", "r": { "b": false, "z": 10.5, "f": "Times New Roman", "ea": "宋体" }, "align": "None" }
+  ],
+  "page": {
+    "pw": 21.0,
+    "ph": 29.7,
+    "l": 2.0,
+    "r": 2.0,
+    "t": 1.9,
+    "b": 1.9,
+    "head": 1.27,
+    "foot": 1.27
+  }
+}

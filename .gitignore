@@ -1,0 +1,18 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+*.log
+*.lnk
+venv/
+.pytest_cache/
+*.idea/
+~$*.docx
+# 旧 AlgoArena 口径文档，暂不入库，本地保留
+简历初稿.docx
+AlgoArena项目技术方案.docx
+sort_platform/data*/
+sort_platform-acl-report/
+*.class
+out/
+backend/out/

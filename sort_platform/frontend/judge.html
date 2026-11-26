@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>裁判控制台 · 排序算法测评平台</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #1b222b;
+  --line: #242c37;
+  --text: #c8d1da;
+  --text-2: #8b98a5;
+  --text-3: #5d6b7a;
+  --blue: #2f81f7;
+  --green: #3fb950;
+  --red: #f85149;
+  --warn: #d29922;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.hidden { display: none !important; }
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 34px 22px 60px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.logo {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  background: #1f6feb;
+  border-radius: 6px;
+}
+
+.brand h1 { font-size: 17px; font-weight: 600; color: #e6edf3; }
+.brand span { font-size: 12px; color: var(--text-3); }
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.card {
+  padding: 20px 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.card + .card { margin-top: 16px; }
+
+.card h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card h2 small {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 12px; color: var(--text-2); }
+
+.field input {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: none;
+}
+
+.field input:focus { border-color: var(--blue); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #2b3543;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+
+.btn:hover:not(:disabled) { border-color: var(--blue); color: #7cb2ff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn.primary { color: #fff; background: #1f6feb; border-color: #1f6feb; }
+.btn.primary:hover:not(:disabled) { background: #2f81f7; color: #fff; }
+
+.btn.danger { color: #fff; background: #b32f2a; border-color: #b32f2a; }
+.btn.danger:hover:not(:disabled) { background: var(--red); color: #fff; }
+
+.btn.sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  border-radius: 4px;
+}
+
+.tip { margin-top: 10px; font-size: 12.5px; min-height: 18px; color: var(--text-2); }
+.tip.bad { color: #ff8a80; }
+.tip.good { color: #7ec8a0; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  padding: 11px 13px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.stat span { display: block; font-size: 11.5px; color: var(--text-3); margin-bottom: 5px; }
+.stat b { font-size: 20px; font-weight: 600; color: #e6edf3; font-variant-numeric: tabular-nums; }
+
+.state-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.dot.on { background: var(--green); }
+.dot.warn { background: var(--warn); }
+.dot.off { background: var(--red); }
+
+.state-text { font-size: 13px; color: #e6edf3; }
+.state-note { font-size: 12px; color: var(--text-3); }
+
+.countdown {
+  display: none;
+  margin: 4px 0 14px;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--blue);
+  font-family: Consolas, "Cascadia Mono", monospace;
+}
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+.duration-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--text-2, #8a94a3); }
+.duration-row input { width: 88px; height: 30px; padding: 0 8px; color: var(--text); background: var(--panel-2); border: 1px solid #30363d; border-radius: 5px; font-size: 13px; }
+.duration-row input:focus { outline: none; border-color: var(--blue); }
+.duration-row .tip { font-size: 11.5px; color: #6e7781; }
+
+.hr { height: 1px; background: var(--line); margin: 18px 0; }
+
+/* ---------- 按学号授予管理员 ---------- */
+.adm-grant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 9px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+.adm-grant input {
+  height: 28px;
+  width: 230px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  outline: none;
+}
+
+.adm-grant input:focus { border-color: var(--blue); }
+
+.adm-tip { font-size: 11.5px; color: var(--text-3); }
+.adm-tip.good { color: #7ec8a0; }
+.adm-tip.bad { color: #ff8a80; }
+
+/* ---------- 选手名单（带操作） ---------- */
+.prow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel-2);
+  margin-bottom: 7px;
+}
+
+.prow .pno {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  min-width: 62px;
+}
+
+/* 在线绿点 + 离线整行压暗：一眼分清谁还在比赛 */
+.pdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #39424d;
+  flex: 0 0 auto;
+}
+
+.pdot.on {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.16);
+}
+
+.prow.off {
+  opacity: 0.45;
+}
+
+.prow.off:hover {
+  opacity: 0.8;
+}
+
+.prow .puser {
+  font-size: 12px;
+  color: var(--text-2);
+  font-family: Consolas, monospace;
+}
+
+.prow .ptags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.ptag {
+  padding: 1px 7px;
+  font-size: 11px;
+  border-radius: 3px;
+  border: 1px solid #2b3543;
+  color: var(--text-2);
+}
+
+.ptag.done { color: #7ec8a0; border-color: #2b4a3a; }
+.ptag.live { color: #58c26f; border-color: #2b4a3a; background: rgba(63, 185, 80, 0.08); }
+.ptag.bad { color: #ff8a80; border-color: #4a2b2b; }
+.ptag.warn { color: #d8b46a; border-color: #4a3f26; }
+
+.prow .pops { display: flex; gap: 6px; }
+
+.empty { font-size: 12.5px; color: var(--text-3); }
+
+/* ---------- 弹窗 ---------- */
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 6, 10, .72);
+}
+
+.modal {
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  padding: 22px 24px;
+  background: var(--panel);
+  border: 1px solid #2b3543;
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .5);
+}
+
+.modal h3 {
+  font-size: 15px;
+  color: #e6edf3;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal .mline {
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.9;
+}
+
+.modal .mline b { color: #e6edf3; }
+
+.modal .mtext {
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+.modal .mactions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.modal input {
+  width: 100%;
+  height: 38px;
+  margin-top: 10px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: none;
+}
+
+.modal input:focus { border-color: var(--blue); }
+
+.foot {
+  margin-top: 22px;
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.9;
+}
+
+@media (max-width: 900px) {
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">J</div>
+    <h1>裁判控制台</h1>
+    <span>· 排序算法测评平台</span>
+  </div>
+
+  <!-- 登录 -->
+  <div class="card" id="loginCard">
+    <h2>裁判登录</h2>
+    <div class="field">
+      <label for="pass">裁判口令</label>
+      <input id="pass" type="password" placeholder="请输入裁判口令" autocomplete="off">
+    </div>
+    <button id="loginBtn" class="btn primary">进入控制台</button>
+    <p class="tip" id="loginTip">裁判由总管在总控台从同学里指定，全平台只有一位；裁判口令与这位同学的登录密码是两套，请分别保管。</p>
+  </div>
+
+  <!-- 控制台 -->
+  <div class="hidden" id="panelCard">
+    <div class="cols">
+      <div>
+        <div class="card">
+          <h2>本场比赛</h2>
+          <p class="tip" id="judgeWho" style="margin:-2px 0 10px"></p>
+          <div class="state-row">
+            <span class="dot" id="stateDot"></span>
+            <span class="state-text" id="stateText">读取中…</span>
+            <span class="state-note" id="stateNote"></span>
+          </div>
+          <div class="countdown" id="countdown"></div>
+
+          <div class="stat-grid">
+            <div class="stat"><span>报名选手</span><b id="sPlayers">0</b></div>
+            <div class="stat"><span>已完赛</span><b id="sFinished">0</b></div>
+            <div class="stat"><span>本场剩余</span><b id="sRemain" style="font-size:14px">—</b></div>
+            <div class="stat"><span>赛制时长</span><b id="sDuration" style="font-size:14px">—</b></div>
+            <div class="stat"><span>开赛时间</span><b id="sStart" style="font-size:14px">—</b></div>
+          </div>
+
+          <div class="duration-row">
+            <label for="durationInput">本场时长（分钟）</label>
+            <input id="durationInput" type="number" min="1" max="600" step="1" value="120">
+            <span class="tip">开赛时生效，到点自动收卷；默认 120 分钟</span>
+          </div>
+
+          <div class="actions">
+            <button id="startBtn" class="btn primary">开启比赛（10 秒倒计时）</button>
+            <button id="endBtn" class="btn danger">强制结束本场</button>
+            <button id="watchBtn" class="btn">进入观赛</button>
+            <a id="caseBtn" class="btn" href="/case">举报 / 申诉处理</a>
+            <button id="refreshBtn" class="btn">刷新状态</button>
+            <button id="logoutBtn" class="btn">退出</button>
+          </div>
+          <p class="tip" id="opTip"></p>
+        </div>
+
+        <div class="card">
+          <h2>选手名单 <small>禁言、解禁、判罚都只作用于该选手本人</small></h2>
+          <div id="playerList"><p class="empty">暂无选手报名</p></div>
+          <p class="tip">管理员身份由总管在总管控制台授予，裁判端不再提供该项操作。</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>修改裁判口令</h2>
+          <div class="field">
+            <label for="oldPass">原口令</label>
+            <input id="oldPass" type="password" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="newPass">新口令（4 ~ 20 位）</label>
+            <input id="newPass" type="password" autocomplete="off">
+          </div>
+          <button id="passBtn" class="btn">确认修改</button>
+          <p class="tip" id="passTip"></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="foot">
+      开启比赛后全端提示「裁判已开启比赛，比赛即将开始」并倒计时 10 秒，倒计时结束统一开始计时；<br>
+      强制结束会把所有未交卷选手按当前代码收卷，没写过代码的按白卷记录，结束后讨论区与弹幕恢复开放；<br>
+      判罚违规只终止被选中的那一名选手，成绩直接记 0 分，违规事由由你填写并随成绩留档。
+    </p>
+  </div>
+</div>
+
+<script>
+const API = location.origin + '/api';
+const KEY = 'sort_judge_session';
+const $ = (id) => document.getElementById(id);
+
+let token = sessionStorage.getItem(KEY) || '';
+let timer = null;
+let cdTimer = null;
+let users = {};
+let players = [];
+let finishedNames = [];
+let contestStatus = 'idle';
+
+function tip(msg, ok) {
+  const t = $('opTip');
+  t.textContent = msg || '';
+  t.className = 'tip' + (msg ? (ok ? ' good' : ' bad') : '');
+}
+
+function hhmm(ms) {
+  if (!ms) return '—';
+  const d = new Date(Number(ms));
+  const p = (v) => String(v).padStart(2, '0');
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+
+async function post(path, params) {
+  const res = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'X-Token': token, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+    body: new URLSearchParams(params || {}).toString()
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || ('请求失败（' + res.status + '）'));
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+async function getJson(path) {
+  const res = await fetch(API + path, { headers: { 'X-Token': token } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || ('请求失败（' + res.status + '）'));
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+/** 会话失效：停掉所有轮询、清令牌、回登录卡片（只按 HTTP 401 判断，不靠中文文案） */
+function stopJudge() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+  if (cdTimer) {
+    clearInterval(cdTimer);
+    cdTimer = null;
+  }
+  token = '';
+  sessionStorage.removeItem(KEY);
+  $('panelCard').classList.add('hidden');
+  $('loginCard').classList.remove('hidden');
+  $('loginTip').textContent = '口令会话已失效，请重新输入裁判口令';
+  $('loginTip').className = 'tip bad';
+  const cd = $('countdown');
+  if (cd) cd.style.display = 'none';
+}
+
+async function login() {
+  const pass = $('pass').value.trim();
+  if (!pass) {
+    $('loginTip').textContent = '请输入裁判口令';
+    $('loginTip').className = 'tip bad';
+    return;
+  }
+  $('loginBtn').disabled = true;
+  try {
+    const data = await post('/judge/login', { password: pass });
+    token = data.token;
+    sessionStorage.setItem(KEY, token);
+    if (data.username) {
+      sessionStorage.setItem(KEY + '_user', data.username);
+      sessionStorage.setItem(KEY + '_who', data.who || data.username);
+    }
+    enterPanel();
+  } catch (e) {
+    $('loginTip').textContent = e.message;
+    $('loginTip').className = 'tip bad';
+  } finally {
+    $('loginBtn').disabled = false;
+  }
+}
+
+function enterPanel() {
+  $('loginCard').classList.add('hidden');
+  $('panelCard').classList.remove('hidden');
+  const whoEl = $('judgeWho');
+  const caseBtn = $('caseBtn');
+  if (caseBtn && token) caseBtn.href = '/case?jt=' + encodeURIComponent(token) + '&role=judge';
+  if (whoEl) {
+    const who = sessionStorage.getItem(KEY + '_who');
+    const un = sessionStorage.getItem(KEY + '_user');
+    whoEl.textContent = who
+      ? '本场裁判：' + who + (un ? '（' + un + '）' : '') + ' · 学生登录密码与裁判口令是两套'
+      : '';
+  }
+  poll();
+  if (timer) clearInterval(timer);
+  timer = setInterval(poll, 1500);
+}
+
+async function poll() {
+  try {
+    const cs = await getJson('/contest');
+    applyState(cs);
+    const uu = await getJson('/admin/users');
+    users = {};
+    (uu.items || []).forEach((x) => { users[x.username] = x; });
+    renderPlayers();
+  } catch (e) {
+    if (e.status === 401) {
+      stopJudge();
+      return;
+    }
+    tip(e.message || '无法读取赛事状态');
+  }
+}
+
+/** 本场剩余时间：running 且有截止时刻才显示，其余显示 — */
+function remainText(cs) {
+  if (cs.status !== 'running' || !cs.deadline) return '—';
+  const sec = Math.max(0, Math.round(Number(cs.remainMillis || 0) / 1000));
+  const p = (v) => String(v).padStart(2, '0');
+  return p(Math.floor(sec / 3600)) + ':' + p(Math.floor((sec % 3600) / 60)) + ':' + p(sec % 60);
+}
+
+function applyState(cs) {
+  contestStatus = cs.status || 'idle';
+  const dot = $('stateDot');
+  const map = {
+    idle: ['等待裁判开赛', '选手可登录、编辑代码，尚不能点击开始'],
+    countdown: ['倒计时中', '全端正在倒计时，结束后自动开赛'],
+    running: ['比赛进行中', '观众可发弹幕；选手侧弹幕与讨论区锁定，交卷后解锁'],
+    finished: ['本场已结束', '讨论区与弹幕已恢复开放']
+  };
+  const row = map[contestStatus] || [contestStatus, ''];
+  $('stateText').textContent = row[0];
+  $('stateNote').textContent = row[1];
+  dot.className = 'dot' + (contestStatus === 'running' ? ' on' : (contestStatus === 'countdown' ? ' warn' : (contestStatus === 'finished' ? ' off' : '')));
+
+  $('sPlayers').textContent = String(cs.players || 0);
+  $('sFinished').textContent = String(cs.finishedPlayers || 0);
+  $('sStart').textContent = hhmm(cs.startAt);
+  $('sDuration').textContent = cs.durationMin ? cs.durationMin + ' 分钟' : '—';
+  $('sRemain').textContent = remainText(cs);
+
+  $('startBtn').disabled = contestStatus === 'countdown' || contestStatus === 'running';
+  $('endBtn').disabled = contestStatus !== 'countdown' && contestStatus !== 'running';
+
+  players = cs.playerNames || [];
+  finishedNames = cs.finishedNames || [];
+
+  if (contestStatus === 'countdown' && cs.countdownEnd) {
+    $('countdown').style.display = 'block';
+    const paint = () => {
+      const left = Math.max(0, Math.ceil((cs.countdownEnd - Date.now()) / 1000));
+      $('countdown').textContent = String(left);
+      if (left <= 0) {
+        $('countdown').textContent = 'GO';
+        if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+        setTimeout(() => { $('countdown').style.display = 'none'; }, 1000);
+      }
+    };
+    paint();
+    if (!cdTimer) cdTimer = setInterval(paint, 250);
+  } else {
+    $('countdown').style.display = 'none';
+    if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+  }
+}
+
+function nowMs() { return Date.now(); }
+
+function renderPlayers() {
+  const box = $('playerList');
+  if (!players.length) {
+    box.innerHTML = '<p class="empty">暂无选手报名</p>';
+    return;
+  }
+  box.innerHTML = players.map((un) => {
+    const u = users[un] || {};
+    const no = String(u.no || un.slice(-2)).padStart(2, '0');
+    const done = finishedNames.indexOf(un) >= 0 || u.finished;
+    const muted = u.muteUntil && u.muteUntil > nowMs();
+    const isAdmin = u.role === 'admin';
+    const online = !!u.online;
+    const tags = [];
+    tags.push('<span class="ptag' + (online ? ' live' : '') + '">' + (online ? '在线' : '离线') + '</span>');
+    tags.push('<span class="ptag' + (done ? ' done' : '') + '">' + (done ? '已完赛' : (contestStatus === 'running' ? '作答中' : '未开始')) + '</span>');
+    if (isAdmin) tags.push('<span class="ptag">管理员</span>');
+    if (muted) tags.push('<span class="ptag warn">已禁言</span>');
+    if (u.violations) tags.push('<span class="ptag bad">违规 ' + u.violations + ' 次</span>');
+    // 禁言权限已经交给管理员，裁判这边只保留判罚违规
+    return '<div class="prow' + (online ? '' : ' off') + '">'
+      + '<span class="pdot' + (online ? ' on' : '') + '"></span>'
+      + '<span class="pno">选手' + no + '</span>'
+      + '<span class="puser">' + un + '</span>'
+      + '<span class="ptags">' + tags.join('') + '</span>'
+      + '<span class="pops">'
+      + (done ? '' : '<button class="btn sm danger" data-act="violate" data-un="' + un + '">判罚违规</button>')
+      + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ---------------- 弹窗 ---------------- */
+
+function openModal(html) {
+  closeModal();
+  const mask = document.createElement('div');
+  mask.className = 'mask';
+  mask.id = 'mask';
+  mask.innerHTML = '<div class="modal">' + html + '</div>';
+  document.body.appendChild(mask);
+  return mask;
+}
+
+function closeModal() {
+  const m = $('mask');
+  if (m) m.remove();
+}
+
+function violate(un, prefill) {
+  const no = (users[un] && users[un].no) || un.slice(-2);
+  openModal(
+    '<h3>判罚违规 · 选手' + String(no).padStart(2, '0') + '</h3>'
+    + '<div class="mline">该选手本场作答立即终止，成绩记 <b>0 分</b>，违规事由随成绩留档。</div>'
+    + '<input id="noteInput" maxlength="60" placeholder="填写违规事由，例如：比赛中交头接耳" value="' + escapeHtml(prefill || '') + '">'
+    + '<p class="tip bad" id="noteTip"></p>'
+    + '<div class="mactions">'
+    + '<button class="btn" id="mCancel">取消</button>'
+    + '<button class="btn danger" id="mOk">确认判罚</button>'
+    + '</div>'
+  );
+  $('noteInput').focus();
+  $('mCancel').onclick = closeModal;
+  $('mOk').onclick = async () => {
+    const note = $('noteInput').value.trim();
+    if (!note) {
+      $('noteTip').textContent = '请填写违规事由';
+      return;
+    }
+    $('mOk').disabled = true;
+    try {
+      await post('/judge/violate', { username: un, note: note });
+
+      closeModal();
+      tip('已判罚 选手' + String(no).padStart(2, '0') + '，本场成绩记 0 分', true);
+      poll();
+    } catch (e) {
+      $('noteTip').textContent = e.message;
+      $('mOk').disabled = false;
+    }
+  };
+}
+
+/* ---------------- 事件 ---------------- */
+
+$('loginBtn').onclick = login;
+$('pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+
+$('startBtn').onclick = async () => {
+  const min = Number($('durationInput').value || 120);
+  if (!min || min < 1) {
+    tip('比赛时长请填 ≥ 1 的分钟数');
+    return;
+  }
+  if (!confirm('开启比赛会清空上一轮成绩（旧成绩已自动备份），本场时长 ' + min + ' 分钟，到点自动收卷。确定开启？')) return;
+  tip('正在开启比赛…');
+  try {
+    await post('/judge/start-contest', { minutes: min });
+    tip('已进入倒计时，10 秒后开始，本场 ' + min + ' 分钟', true);
+    poll();
+  } catch (e) {
+    tip(e.message);
+  }
+};
+
+$('endBtn').onclick = async () => {
+  if (!confirm('确定强制结束本场比赛？未交卷选手将按当前代码收卷。')) return;
+  tip('正在结束比赛…');
+  try {
+    await post('/judge/force-end', {});
+    tip('本场比赛已结束，未交卷选手已按当前代码收卷', true);
+    poll();
+  } catch (e) {
+    tip(e.message);
+  }
+};
+
+$('watchBtn').onclick = () => {
+  window.open('/watch?jt=' + encodeURIComponent(token), '_blank');
+};
+
+$('refreshBtn').onclick = () => {
+  poll();
+  tip('已刷新', true);
+};
+
+$('logoutBtn').onclick = () => {
+  token = '';
+  localStorage.removeItem(KEY);
+  sessionStorage.removeItem(KEY);
+  sessionStorage.removeItem(KEY + '_user');
+  sessionStorage.removeItem(KEY + '_who');
+  if (timer) clearInterval(timer);
+  timer = null;
+  $('panelCard').classList.add('hidden');
+  $('loginCard').classList.remove('hidden');
+  $('pass').value = '';
+  $('loginTip').textContent = '已退出裁判控制台';
+  $('loginTip').className = 'tip';
+};
+
+$('passBtn').onclick = async () => {
+  const oldPass = $('oldPass').value.trim();
+  const newPass = $('newPass').value.trim();
+  const t = $('passTip');
+  if (!oldPass || !newPass) {
+    t.textContent = '原口令和新口令都要填';
+    t.className = 'tip bad';
+    return;
+  }
+  $('passBtn').disabled = true;
+  try {
+    await post('/judge/pass', { oldPass: oldPass, newPass: newPass });
+    t.textContent = '裁判口令已修改，下次登录请用新口令';
+    t.className = 'tip good';
+    $('oldPass').value = '';
+    $('newPass').value = '';
+  } catch (e) {
+    t.textContent = e.message;
+    t.className = 'tip bad';
+  } finally {
+    $('passBtn').disabled = false;
+  }
+};
+
+document.addEventListener('click', async (ev) => {
+  const el = ev.target.closest('[data-act]');
+  if (!el) return;
+  const un = el.getAttribute('data-un');
+  const act = el.getAttribute('data-act');
+  if (act === 'mute' || act === 'unmute') {
+    tip('禁言权限已移交给管理员，裁判只负责开赛、结束与判违规');
+    return;
+  }
+  if (act === 'violate') {
+    violate(un, '');
+  }
+});
+if (token) enterPanel();
+</script>
+</body>
+</html>

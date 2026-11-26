@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>事务处理台 · 排序算法测评平台</title>
+  <link rel="stylesheet" href="style.css?v=20261112a">
+  <style>
+    body { margin: 0; background: #0b1016; color: #c8d1da; font-family: "Microsoft YaHei", "Segoe UI", sans-serif; }
+
+    .cw-wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 60px; }
+
+    .cw-head { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid #242c37; }
+    .cw-head h1 { margin: 0; font-size: 20px; color: #e6edf3; }
+    .cw-head .sub { font-size: 12.5px; color: #8a94a3; }
+    .cw-head .who { margin-left: auto; font-size: 12.5px; color: #3fb950; }
+    .cw-head a { color: #2f81f7; font-size: 12.5px; text-decoration: none; padding: 5px 11px; border: 1px solid #2f81f755; border-radius: 14px; transition: background .15s, border-color .15s; }
+    .cw-head a:hover { background: #2f81f71a; border-color: #2f81f7; }
+
+    .login-box { max-width: 380px; margin: 60px auto; padding: 24px; background: #10161f; border: 1px solid #242c37; border-radius: 10px; }
+    .login-box h2 { margin: 0 0 16px; font-size: 16px; color: #e6edf3; }
+    .login-box label { display: block; margin: 10px 0 5px; font-size: 12px; color: #8a94a3; }
+    .login-box input, .login-box select { width: 100%; box-sizing: border-box; padding: 9px 11px; font-size: 13px; color: #e6edf3; background: #161b22; border: 1px solid #30363d; border-radius: 6px; }
+    .login-box button { width: 100%; margin-top: 16px; padding: 10px; font-size: 13px; color: #fff; background: #2f81f7; border: none; border-radius: 6px; cursor: pointer; }
+    .login-box .msg { min-height: 16px; margin: 10px 0 0; font-size: 12px; color: #f85149; }
+    .login-box .tip { margin-top: 12px; font-size: 11.5px; color: #8a94a3; line-height: 1.7; }
+
+    .cw-tabs { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+    .cw-tabs button { display: inline-flex; align-items: center; line-height: 1; text-decoration: none; padding: 7px 14px; font-size: 12.5px; color: #8a94a3; background: #10161f; border: 1px solid #242c37; border-radius: 15px; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
+    .cw-tabs button:hover { color: #c8d1da; border-color: #3a4654; }
+    .cw-tabs button.on { color: #e6edf3; background: #1f6feb33; border-color: #2f81f7; }
+
+    .card { margin-bottom: 12px; padding: 14px 16px; background: #10161f; border: 1px solid #242c37; border-radius: 9px; }
+    .card.pending { border-left: 3px solid #d29922; }
+    .card.approved { border-left: 3px solid #3fb950; opacity: .82; }
+    .card.rejected { border-left: 3px solid #f85149; opacity: .82; }
+
+    .card-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .tag { padding: 2px 8px; font-size: 11.5px; border-radius: 10px; border: 1px solid #30363d; color: #8a94a3; }
+    .tag.report { color: #d29922; border-color: #d2992266; }
+    .tag.appeal { color: #2f81f7; border-color: #2f81f766; }
+    .tag.type { color: #c8d1da; }
+    .card-top .id { font-size: 12px; color: #8a94a3; }
+    .card-top .status { margin-left: auto; font-size: 12px; }
+    .status.pending { color: #d29922; }
+    .status.approved { color: #3fb950; }
+    .status.rejected { color: #f85149; }
+
+    .card-body { margin-top: 10px; font-size: 13px; line-height: 1.75; }
+    .kv { margin: 3px 0; }
+    .kv b { color: #e6edf3; font-weight: 600; }
+    .reason { margin-top: 8px; padding: 8px 10px; background: #161b22; border-radius: 6px; color: #c8d1da; }
+
+    .ops { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .ops input { flex: 1; min-width: 180px; padding: 7px 9px; font-size: 12px; color: #e6edf3; background: #161b22; border: 1px solid #30363d; border-radius: 6px; }
+    .ops button { padding: 7px 13px; font-size: 12px; border-radius: 6px; cursor: pointer; border: 1px solid #30363d; }
+    .ops .ok { color: #fff; background: #238636; border-color: #238636; }
+    .ops .no { color: #f85149; background: #161b22; }
+
+    .empty { padding: 40px 0; text-align: center; font-size: 13px; color: #8a94a3; }
+    .cw-note { margin-top: 18px; padding: 12px 14px; border: 1px dashed #30363d; border-radius: 8px; font-size: 12px; line-height: 1.8; color: #8a94a3; background: #0c121a; }
+    .cw-note b { color: #c9d1d9; font-weight: 600; }
+
+    /* 实时刷新 / 操作反馈 */
+    .cw-live { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: -6px 0 12px; font-size: 12px; color: #6e7781; }
+    .cw-live .dot { width: 7px; height: 7px; border-radius: 50%; background: #3fb950; box-shadow: 0 0 0 3px #3fb95022; }
+    .cw-live button { padding: 4px 10px; font-size: 12px; color: #8a94a3; background: #10161f; border: 1px solid #242c37; border-radius: 12px; cursor: pointer; }
+    .cw-live button:hover { color: #c8d1da; border-color: #3a4654; }
+    #list.flash { animation: cwflash .9s ease-out; }
+    @keyframes cwflash { 0% { box-shadow: 0 0 0 2px #2f81f7aa; } 100% { box-shadow: 0 0 0 2px transparent; } }
+    .cw-toast { position: fixed; top: 18px; right: 18px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+    .cw-toast div { padding: 9px 14px; font-size: 12.5px; color: #e6edf3; background: #16212e; border: 1px solid #2f81f7; border-left-width: 3px; border-radius: 7px; box-shadow: 0 8px 24px rgba(0,0,0,.4); animation: cwin .18s ease-out; }
+    .cw-toast div.ok { border-color: #3fb950; }
+    .cw-toast div.bad { border-color: #f85149; }
+    @keyframes cwin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  </style>
+</head>
+
+<body>
+  <div class="cw-toast" id="toastBox"></div>
+  <div class="cw-wrap">
+    <div class="cw-head">
+      <h1>事务处理台</h1>
+      <span class="sub">举报 / 申诉 · 按身份显示可处理事项</span>
+      <span class="who" id="whoTag"></span>
+      <a id="backLink" href="/">返回首页</a>
+    </div>
+
+    <div id="loginBox" class="login-box">
+      <h2>登录处理台</h2>
+      <label>身份</label>
+      <select id="roleSel">
+        <option value="judge">裁判</option>
+        <option value="admin">管理员</option>
+        <option value="super">总管</option>
+      </select>
+      <label>学号（总管不需要填）</label>
+      <input id="unInput" placeholder="202530126001">
+      <label>口令</label>
+      <input id="pwInput" type="password" placeholder="控制台口令">
+      <button id="loginBtn">登录</button>
+      <p class="msg" id="loginMsg"></p>
+      <div class="tip">
+        裁判处理「违规」举报与违规申诉；管理员处理「不当言论」举报与禁言申诉；<br>
+        总管处理全部，包括封号申诉与管理员上报的裁判违规。
+      </div>
+    </div>
+
+    <div id="panel" style="display:none">
+      <div class="cw-tabs" id="statusTabs">
+        <button data-s="pending" class="on">待处理</button>
+        <button data-s="approved">已通过</button>
+        <button data-s="rejected">已驳回</button>
+        <button data-s="all">全部</button>
+      </div>
+      <div class="cw-tabs" id="kindTabs">
+        <button data-k="all" class="on">全部类型</button>
+        <button data-k="report">举报</button>
+        <button data-k="appeal">申诉</button>
+      </div>
+      <div class="cw-live">
+        <span class="dot"></span><span id="liveText">每 5 秒自动刷新</span>
+        <button id="refreshBtn">立即刷新</button>
+      </div>
+      <div id="list"></div>
+      <div class="cw-note">
+        处理规则：违规 / 禁言 / 封号申诉通过后自动撤罚。违规申诉会恢复<b>判罚前</b>的成绩（判罚前没有成绩的，仍记 0 分）；
+        工作人员违规通过只留档，<b>不会</b>自动撤职或封号。<br>
+        旧的管理员「检举选手」已并入本页，统一在这里处理，不再有第二套收件箱。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let TOKEN = '';
+    let ROLE = '';
+    let STATUS = 'pending';
+    let KIND = 'all';
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    async function login() {
+      const role = $('roleSel').value;
+      const un = $('unInput').value.trim();
+      const pw = $('pwInput').value;
+      let url = '/api/judge/login';
+      let body = 'password=' + encodeURIComponent(pw);
+      if (role === 'admin') {
+        url = '/api/admin/login'; body = 'username=' + encodeURIComponent(un) + '&password=' + encodeURIComponent(pw);
+      } else if (role === 'super') {
+        url = '/api/super/login'; body = 'username=' + encodeURIComponent(un || 'supervisor') + '&password=' + encodeURIComponent(pw);
+      }
+      $('loginMsg').textContent = '登录中…';
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body });
+        const d = await res.json();
+        if (!res.ok) { $('loginMsg').textContent = d.error || '登录失败'; return; }
+        TOKEN = d.token; ROLE = role;
+        sessionStorage.setItem('sort_case_token', TOKEN);
+        sessionStorage.setItem('sort_case_role', role);
+        showPanel();
+      } catch (e) { $('loginMsg').textContent = '无法连接后端'; }
+    }
+
+    /** 返回按钮跟着身份走：管理员回后台、裁判回控制台、总管回总控台，别人的「首页」不是观赛页 */
+    function updateBack() {
+      const a = $('backLink');
+      if (!a) return;
+      if (ROLE === 'admin') { a.href = '/admin'; a.textContent = '返回后台'; }
+      else if (ROLE === 'judge') { a.href = '/judge'; a.textContent = '返回裁判控制台'; }
+      else if (ROLE === 'super') { a.href = '/super'; a.textContent = '返回总控台'; }
+      else { a.href = '/'; a.textContent = '返回首页'; }
+    }
+
+    async function showPanel() {
+      const res = await fetch('/api/case/list?status=all&kind=all', { headers: { 'X-Token': TOKEN } });
+      if (!res.ok) { $('loginMsg').textContent = '登录态已失效，请重新登录'; return; }
+      $('loginBox').style.display = 'none';
+      $('panel').style.display = 'block';
+      updateBack();
+      startLive();
+      await load(true);
+    }
+
+    // ---------------- 实时刷新 ----------------
+
+    let liveTimer = null;
+    let lastSig = '';
+    let lastPending = -1;
+
+    function startLive() {
+      if (liveTimer) clearInterval(liveTimer);
+      liveTimer = setInterval(() => {
+        // 标签页在后台时不轮询，切回来立刻补一次
+        if (!document.hidden) load(false);
+      }, 5000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) load(false);
+      });
+    }
+
+    /** 操作反馈：右上角浮一条，2.6 秒后自动消失 */
+    function toast(msg, type) {
+      const box = $('toastBox');
+      if (!box) return;
+      const el = document.createElement('div');
+      if (type) el.className = type;
+      el.textContent = msg;
+      box.appendChild(el);
+      setTimeout(() => {
+        el.style.transition = 'opacity .25s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 260);
+      }, 2600);
+    }
+
+    function stampUpdated() {
+      const t = $('liveText');
+      if (!t) return;
+      const d = new Date();
+      const p = (v) => String(v).padStart(2, '0');
+      t.textContent = '已更新 ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+
+    /**
+     * 拉取案件列表。
+     * force=false 时如果数据没变就不重绘，避免每 5 秒闪一下、也避免打断正在输入的处理说明。
+     */
+    async function load(force) {
+      let d;
+      try {
+        const res = await fetch('/api/case/list?status=' + STATUS + '&kind=' + KIND, { headers: { 'X-Token': TOKEN } });
+        d = await res.json();
+        if (!res.ok) {
+          if (res.status === 401) { $('panel').style.display = 'none'; $('loginBox').style.display = ''; $('loginMsg').textContent = '登录态已失效，请重新登录'; }
+          else toast(d.error || '加载失败', 'bad');
+          return;
+        }
+      } catch (e) {
+        return;   // 网络抖动，下一轮再拉
+      }
+      $('whoTag').textContent = d.who || '';
+      const items = d.items || [];
+      const sig = STATUS + '|' + KIND + '|' + items.map((c) =>
+        c.id + ':' + c.status + ':' + (c.handler || '') + ':' + (c.note || '')).join(',');
+      const pending = items.filter((c) => c.status === 'pending').length;
+      if (!force && sig === lastSig) {
+        stampUpdated();
+        return;
+      }
+      lastSig = sig;
+      renderList(items);
+      stampUpdated();
+      if (lastPending >= 0 && pending > lastPending) {
+        toast('有 ' + (pending - lastPending) + ' 条新的待处理记录', 'ok');
+        const list = $('list');
+        list.classList.remove('flash');
+        void list.offsetWidth;   // 重新触发动画
+        list.classList.add('flash');
+      }
+      lastPending = pending;
+    }
+
+    function renderList(items) {
+      // 自动刷新会重建卡片，先把已经输入的处理说明存下来，重建后填回去
+      const notes = {};
+      $('list').querySelectorAll('input[id^="note"]').forEach((el) => { notes[el.id] = el.value; });
+      if (!items.length) {
+        $('list').innerHTML = '<div class="empty">当前没有符合条件的记录</div>';
+        return;
+      }
+      $('list').innerHTML = items.map(card).join('');
+      Object.keys(notes).forEach((id) => { const el = $(id); if (el) el.value = notes[id]; });
+      $('list').querySelectorAll('[data-op]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-id');
+          const act = btn.getAttribute('data-op');
+          const noteEl = $('note' + id);
+          op(id, act, noteEl ? noteEl.value : '');
+        };
+      });
+    }
+
+    function card(c) {
+      const st = { pending: '待处理', approved: '已通过', rejected: '已驳回' }[c.status] || c.status;
+      return '<div class="card ' + c.status + '">' +
+        '<div class="card-top">' +
+        '<span class="tag ' + c.kind + '">' + esc(c.kindLabel) + '</span>' +
+        '<span class="tag type">' + esc(c.typeLabel) + '</span>' +
+        '<span class="id">#' + c.id + ' · ' + esc(c.createdAt) + '</span>' +
+        '<span class="status ' + c.status + '">' + st + '</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+        '<div class="kv">涉及账号：<b>' + esc(c.targetLabel) + '</b>（' + esc(c.target) + '）</div>' +
+        '<div class="kv">' + (c.kind === 'report' ? '举报人' : '申诉人') + '：<b>' + esc(c.reporter) + '</b></div>' +
+        '<div class="reason">' + esc(c.reason) + '</div>' +
+        (c.handler ? '<div class="kv">处理人：<b>' + esc(c.handler) + '</b> · ' + esc(c.handledAt) + '</div>' : '') +
+        (c.note ? '<div class="kv">处理说明：' + esc(c.note) + '</div>' : '') +
+        '</div>' +
+        (c.status === 'pending' && c.canHandle
+          ? '<div class="ops"><input id="note' + c.id + '" placeholder="处理说明（可留空）" maxlength="120">' +
+            '<button class="ok" data-op="approve" data-id="' + c.id + '">通过并生效</button>' +
+            (ROLE === 'super' && c.type === 'staff' && c.kind === 'report'
+              ? '<button class="no" data-op="approve_ban" data-id="' + c.id + '">通过并封号</button>' : '') +
+            '<button class="no" data-op="reject" data-id="' + c.id + '">驳回</button></div>'
+          : (c.status === 'pending' ? '<div class="kv" style="margin-top:8px;color:#8a94a3">不由你处理</div>' : '')) +
+        '</div>';
+    }
+
+    async function op(id, action, note) {
+      if (action === 'approve' && !confirm('通过后处罚会立即生效（申诉则自动撤罚），确定？')) return;
+      if (action === 'approve_ban' && !confirm('通过这条工作人员违规并立即封号？会同时撤掉其管理/裁判身份。')) return;
+      const btns = $('list').querySelectorAll('[data-id="' + id + '"]');
+      btns.forEach((b) => { b.disabled = true; });
+      try {
+        const res = await fetch('/api/case/op', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Token': TOKEN },
+          body: 'id=' + encodeURIComponent(id) + '&action=' + action + '&note=' + encodeURIComponent(note),
+        });
+        const d = await res.json();
+        if (!res.ok) {
+          toast(d.error || '操作失败', 'bad');
+          btns.forEach((b) => { b.disabled = false; });
+          return;
+        }
+        toast(action === 'reject' ? ('#' + id + ' 已驳回') : ('#' + id + ' 已通过并生效'), 'ok');
+        lastPending = -1;   // 操作会改变待处理数量，别误报「有新记录」
+        await load(true);
+      } catch (e) {
+        toast('网络异常，操作未提交', 'bad');
+        btns.forEach((b) => { b.disabled = false; });
+      }
+    }
+
+    $('loginBtn').onclick = login;
+    $('pwInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+    $('refreshBtn').onclick = () => load(true);
+    $('statusTabs').onclick = (e) => {
+      const s = e.target.getAttribute('data-s');
+      if (!s) return;
+      STATUS = s;
+      lastPending = -1;
+      [...$('statusTabs').children].forEach((b) => b.classList.toggle('on', b === e.target));
+      load(true);
+    };
+    $('kindTabs').onclick = (e) => {
+      const k = e.target.getAttribute('data-k');
+      if (!k) return;
+      KIND = k;
+      lastPending = -1;
+      [...$('kindTabs').children].forEach((b) => b.classList.toggle('on', b === e.target));
+      load(true);
+    };
+
+    (async function boot() {
+      const q = new URLSearchParams(location.search);
+      const at = q.get('at') || q.get('jt') || q.get('st') || sessionStorage.getItem('sort_case_token');
+      if (at) {
+        TOKEN = at;
+        ROLE = q.get('role') || sessionStorage.getItem('sort_case_role') || '';
+        showPanel();
+      }
+    })();
+  </script>
+</body>
+
+</html>

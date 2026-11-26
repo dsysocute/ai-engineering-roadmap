@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>总管控制台 · 排序算法测评平台</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #1b222b;
+  --line: #242c37;
+  --text: #c8d1da;
+  --text-2: #8b98a5;
+  --text-3: #5d6b7a;
+  --blue: #2f81f7;
+  --green: #3fb950;
+  --red: #f85149;
+  --warn: #d29922;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.hidden { display: none !important; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 34px 22px 60px; }
+
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+
+.logo {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px; color: #fff;
+  background: #1f6feb; border-radius: 6px;
+}
+
+.brand h1 { font-size: 17px; font-weight: 600; color: #e6edf3; }
+.brand span { font-size: 12px; color: var(--text-3); }
+
+.card {
+  padding: 20px 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.card + .card { margin-top: 16px; }
+
+.card h2 {
+  font-size: 14px; font-weight: 600; color: #e6edf3;
+  margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+
+.card h2 small { font-size: 11.5px; font-weight: 400; color: var(--text-3); }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 12px; color: var(--text-2); }
+
+.field input {
+  height: 38px; padding: 0 12px;
+  font-size: 13px; color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: none;
+}
+
+.field input:focus { border-color: var(--blue); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  height: 36px; padding: 0 16px;
+  font-size: 13px; color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #2b3543;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+
+.btn:hover:not(:disabled) { border-color: var(--blue); color: #7cb2ff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn.primary { color: #fff; background: #1f6feb; border-color: #1f6feb; }
+.btn.primary:hover:not(:disabled) { background: #2f81f7; color: #fff; }
+
+.btn.danger { color: #fff; background: #b32f2a; border-color: #b32f2a; }
+.btn.danger:hover:not(:disabled) { background: var(--red); color: #fff; }
+
+.btn.sm { height: 26px; padding: 0 10px; font-size: 11.5px; border-radius: 4px; }
+
+.tip { margin-top: 10px; font-size: 12.5px; min-height: 18px; color: var(--text-2); }
+.tip.bad { color: #ff8a80; }
+.tip.good { color: #7ec8a0; }
+
+.state-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.dot.on { background: var(--green); }
+.dot.warn { background: var(--warn); }
+.dot.off { background: var(--red); }
+.state-text { font-size: 13px; color: #e6edf3; }
+.state-note { font-size: 12px; color: var(--text-3); }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.stat {
+  padding: 11px 13px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.stat span { display: block; font-size: 11.5px; color: var(--text-3); margin-bottom: 5px; }
+.stat b { font-size: 20px; font-weight: 600; color: #e6edf3; font-variant-numeric: tabular-nums; }
+
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
+.toolbar input {
+  height: 30px; width: 210px; padding: 0 10px;
+  font-size: 12.5px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  outline: none;
+}
+
+.toolbar input:focus { border-color: var(--blue); }
+
+.toolbar .chip {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.toolbar .chip.on { color: #7cb2ff; border-color: var(--blue); background: rgba(47, 129, 247, .12); }
+
+.ulist {
+  max-height: 520px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel-2);
+}
+
+.urow {
+  display: grid;
+  grid-template-columns: 62px 132px 96px minmax(0, 1fr) 300px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  border-bottom: 1px solid #202733;
+}
+
+.urow:last-child { border-bottom: none; }
+.urow.no  { color: var(--text-3); font-size: 12px; }
+.urow.un  { color: #dbe4ee; font-variant-numeric: tabular-nums; }
+
+.utags { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.ptag {
+  padding: 1px 7px;
+  font-size: 11px;
+  color: #8b98a5;
+  background: #202733;
+  border: 1px solid #2b3543;
+  border-radius: 10px;
+}
+
+.ptag.done { color: #7ec8a0; border-color: rgba(63, 185, 80, .35); }
+.ptag.warn { color: #e3b341; border-color: rgba(210, 153, 34, .4); }
+.ptag.bad { color: #ff8a80; border-color: rgba(248, 81, 73, .4); }
+.ptag.admin { color: #7cb2ff; border-color: rgba(47, 129, 247, .45); }
+.ptag.judge { color: #f0b95a; border-color: rgba(210, 153, 34, .5); background: rgba(210, 153, 34, .1); }
+.ptag.live { color: #58c26f; border-color: rgba(63, 185, 80, .45); background: rgba(63, 185, 80, .1); }
+
+/* 离线账号整行压暗，在线的高亮，方便一眼看出谁在场地里 */
+.urow.off { opacity: .45; }
+.urow.off:hover { opacity: .8; }
+
+.uops { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+.empty { padding: 16px; font-size: 12.5px; color: var(--text-3); text-align: center; }
+
+.foot {
+  margin-top: 22px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--text-3);
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">S</div>
+    <div>
+      <h1>总管控制台</h1>
+      <span>Supervisor Console · 排序算法测评平台</span>
+    </div>
+  </div>
+
+  <!-- 登录 -->
+  <div class="card" id="loginCard" style="max-width:420px">
+    <h2>总管登录 <small>独立账户，与学生账号、裁判口令分开</small></h2>
+    <div class="field">
+      <label for="suUser">总管账号</label>
+      <input id="suUser" type="text" autocomplete="off" value="supervisor">
+    </div>
+    <div class="field">
+      <label for="suPass">口令</label>
+      <input id="suPass" type="password" autocomplete="off" placeholder="默认 super2026">
+    </div>
+    <button id="suLoginBtn" class="btn primary">进入控制台</button>
+    <p class="tip" id="suTip"></p>
+  </div>
+
+  <!-- 已登录 -->
+  <div id="panel" class="hidden">
+    <div class="card">
+      <h2>赛事概览 <small id="eventNote">—</small></h2>
+      <div class="state-row">
+        <span class="dot" id="stateDot"></span>
+        <span class="state-text" id="stateText">比赛未开始</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span>报名选手</span><b id="sPlayers">0</b></div>
+        <div class="stat"><span>已完赛</span><b id="sFinished">0</b></div>
+        <div class="stat"><span>管理员人数</span><b id="sAdmins">0</b></div>
+        <div class="stat"><span>已封号</span><b id="sBanned">0</b></div>
+      </div>
+      <div class="actions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button id="watchBtn" class="btn">以总管身份进入观赛</button>
+        <a id="caseLink" class="btn" href="/case">举报 / 申诉处理（全部）</a>
+        <button id="refreshBtn" class="btn">刷新</button>
+        <button id="logoutBtn" class="btn">退出</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>账号管理 <small>管理员身份只能在这里授予或撤销，管理员与裁判都没有该权限</small></h2>
+      <div class="toolbar">
+        <input id="searchInput" type="text" placeholder="按学号搜索，例如 202530126037" autocomplete="off">
+        <span class="chip" id="chipAdmin">只看管理员</span>
+        <span class="chip" id="chipPlayer">只看报名选手</span>
+        <span class="chip" id="chipBanned">只看已封号</span>
+      </div>
+      <div class="ulist" id="userList"><p class="empty">加载中…</p></div>
+      <p class="tip" id="opTip"></p>
+    </div>
+
+    <div class="card">
+      <h2>修改总管口令</h2>
+      <div class="field">
+        <label for="suOldPass">原口令</label>
+        <input id="suOldPass" type="password" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="suNewPass">新口令（4 ~ 20 位）</label>
+        <input id="suNewPass" type="password" autocomplete="off">
+      </div>
+      <button id="suPassBtn" class="btn">确认修改</button>
+      <p class="tip" id="suPassTip"></p>
+    </div>
+  </div>
+
+  <p class="foot">
+    总管是平台最高权限：设置／撤销管理员、禁言解禁、封号解封都在这里；<br>
+    管理员由总管从现有学生账号中授予，被授予者用「学号 + 学号」登录管理平台，可自行改口令；<br>
+    总管的发言在讨论区与弹幕中带「总管」头衔。
+  </p>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let token = sessionStorage.getItem('superToken') || '';
+let users = [];
+let onlyAdmin = false;
+let onlyPlayer = false;
+let onlyBanned = false;
+
+async function api(path, body) {
+  const opt = body
+    ? { method: 'POST', headers: { 'X-Token': token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() }
+    : { headers: { 'X-Token': token } };
+  const r = await fetch('/api' + path, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+
+function tip(msg, good) {
+  const el = $('opTip');
+  el.textContent = msg || '';
+  el.className = 'tip' + (good ? ' good' : ' bad');
+}
+
+async function doLogin() {
+  const btn = $('suLoginBtn');
+  const t = $('suTip');
+  btn.disabled = true;
+  try {
+    const j = await api('/super/login', { username: $('suUser').value.trim(), password: $('suPass').value.trim() });
+    token = j.token;
+    sessionStorage.setItem('superToken', token);
+    if ($('caseLink')) $('caseLink').href = '/case?st=' + encodeURIComponent(token) + '&role=super';
+    t.textContent = '';
+    enterPanel();
+  } catch (e) {
+    t.textContent = e.message;
+    t.className = 'tip bad';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function enterPanel() {
+  $('loginCard').classList.add('hidden');
+  $('panel').classList.remove('hidden');
+  loadUsers();
+  loadContest();
+}
+
+async function loadContest() {
+  try {
+    const j = await api('/contest');
+    const st = j.status || 'idle';
+    const map = { idle: ['比赛未开始', 'off'], countdown: ['即将开始', 'warn'], running: ['比赛进行中', 'on'], finished: ['本场已结束', 'off'] };
+    const p = map[st] || map.idle;
+    $('stateText').textContent = p[0];
+    $('stateDot').className = 'dot ' + p[1];
+    $('eventNote').textContent = j.startAt ? ('开赛 ' + j.startAt) : '等待裁判开启';
+  } catch (e) { /* 概览失败不影响账号管理 */ }
+}
+
+async function loadUsers() {
+  try {
+    const j = await api('/admin/users');
+    users = j.items || [];
+    renderUsers();
+  } catch (e) {
+    $('userList').innerHTML = '<p class="empty">' + e.message + '</p>';
+  }
+}
+
+function renderUsers() {
+  const kw = $('searchInput').value.trim();
+  let list = users.slice();
+    if (kw) list = list.filter((u) => u.username.indexOf(kw) >= 0);
+  if (onlyAdmin) list = list.filter((u) => u.role === 'admin' || u.role === 'judge');
+  if (onlyPlayer) list = list.filter((u) => u.player);
+  if (onlyBanned) list = list.filter((u) => u.banned);
+
+  $('sAdmins').textContent = users.filter((u) => u.role === 'admin' || u.role === 'judge').length;
+  $('sBanned').textContent = users.filter((u) => u.banned).length;
+  $('sPlayers').textContent = users.filter((u) => u.player).length;
+  $('sFinished').textContent = users.filter((u) => u.finished).length;
+
+  if (!list.length) {
+    $('userList').innerHTML = '<p class="empty">没有符合条件的账号</p>';
+    return;
+  }
+  const now = Date.now();
+  $('userList').innerHTML = list.map((u) => {
+    const tags = [];
+    tags.push('<span class="ptag' + (u.online ? ' live' : '') + '">' + (u.online ? '在线' : '离线') + '</span>');
+    if (u.role === 'judge') tags.push('<span class="ptag judge">裁判 · 高级管理员</span>');
+    if (u.role === 'admin') tags.push('<span class="ptag admin">管理员</span>');
+    if (u.player) tags.push('<span class="ptag">选手</span>');
+    if (u.finished) tags.push('<span class="ptag done">已完赛</span>');
+    if (u.muteUntil && u.muteUntil > now) tags.push('<span class="ptag warn">已禁言</span>');
+    if (u.violations) tags.push('<span class="ptag bad">违规 ' + u.violations + ' 次</span>');
+    if (u.banned) tags.push('<span class="ptag bad" title="' + (u.banReason || '') + '">已封号' + (u.banReason ? ' · ' + u.banReason : '') + '</span>');
+    const judgeBtn = u.role === 'judge'
+      ? '<button class="btn sm" data-act="revokeJudge" data-un="' + u.username + '">撤销裁判</button>'
+      : '<button class="btn sm" data-act="grantJudge" data-un="' + u.username + '">设为裁判</button>';
+    const adminBtn = u.role === 'admin' || u.role === 'judge'
+      ? '<button class="btn sm" data-act="revokeAdmin" data-un="' + u.username + '">撤销管理员</button>'
+      : '<button class="btn sm" data-act="grantAdmin" data-un="' + u.username + '">设为管理员</button>';
+    const muteBtn = (u.muteUntil && u.muteUntil > now)
+      ? '<button class="btn sm" data-act="unmute" data-un="' + u.username + '">解禁</button>'
+      : '<button class="btn sm" data-act="mute" data-un="' + u.username + '">禁言</button>';
+    const banBtn = u.banned
+      ? '<button class="btn sm" data-act="unban" data-un="' + u.username + '">解封</button>'
+      : '<button class="btn sm danger" data-act="ban" data-un="' + u.username + '">封号</button>';
+    const passBtn = '<button class="btn sm" data-act="resetPass" data-un="' + u.username + '">重置学生密码</button>';
+    const staffPassBtn = (u.role === 'admin' || u.role === 'judge')
+      ? '<button class="btn sm" data-act="resetStaffPass" data-kind="' + (u.role === 'judge' ? 'judge' : 'admin')
+        + '" data-un="' + u.username + '">重置' + (u.role === 'judge' ? '裁判' : '管理') + '口令</button>'
+      : '';
+    return '<div class="urow' + (u.online ? '' : ' off') + '">'
+      + '<span class="no">' + String(u.no).padStart(2, '0') + '</span>'
+      + '<span class="un">' + u.username + '</span>'
+      + '<span class="utags">' + tags.join('') + '</span>'
+      + '<span></span>'
+      + '<span class="uops">' + judgeBtn + adminBtn + muteBtn + banBtn + passBtn + staffPassBtn + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+async function op(action, username, kind) {
+  const grant = action === 'grantAdmin';
+  const revoke = action === 'revokeAdmin';
+  const text = grant
+    ? ('把 ' + username + ' 设为管理员？他之后用「学号 + 学号」登录管理平台')
+    : action === 'grantJudge'
+      ? ('把 ' + username + ' 设为裁判？全平台只能有一位裁判，原裁判会被自动撤下，他用「' + username + ' + 学号」以外的裁判口令登录裁判控制台')
+      : action === 'revokeJudge'
+        ? ('撤销 ' + username + ' 的裁判身份？撤销后裁判控制台将无法登录')
+        : revoke
+          ? ('撤销 ' + username + ' 的管理员身份？')
+          : action === 'ban'
+            ? ('永久封号 ' + username + '？该账号将无法登录')
+            : action === 'unban'
+              ? ('解封 ' + username + '？')
+              : action === 'mute'
+                ? ('禁言 ' + username + '？默认 30 分钟')
+                : action === 'resetPass'
+                  ? ('重置 ' + username + ' 的登录密码？留空则回到初始密码 123456')
+                  : action === 'resetStaffPass'
+                    ? ('重置 ' + username + ' 的' + (kind === 'judge' ? '裁判' : '管理员') + '控制台口令？留空则回到默认口令')
+                    : ('解除 ' + username + ' 的禁言？');
+  if (!confirm(text)) return;
+  const body = { username: username, action: action };
+  if (action === 'mute') {
+    const m = prompt('禁言多少分钟？（默认 30）', '30');
+    if (m === null) return;
+    const n = parseInt(m, 10);
+    body.minutes = String(isNaN(n) ? 30 : n);
+  }
+  if (action === 'ban') {
+    const why = prompt('封号原因（会留档，可留空）', '');
+    if (why === null) return;
+    body.reason = why.trim();
+  }
+  if (action === 'resetPass') {
+    const np = prompt('新密码（4 ~ 20 位）。留空 = 回到初始密码 123456', '');
+    if (np === null) return;
+    body.newPass = np.trim();
+  }
+  if (action === 'resetStaffPass') {
+    const np = prompt((kind === 'judge' ? '裁判' : '管理员') + '新口令（4 ~ 20 位）。留空 = 回到默认口令'
+      + (kind === 'judge' ? ' abc2511298' : '（学号）'), '');
+    if (np === null) return;
+    body.kind = kind || 'admin';
+    body.newPass = np.trim();
+  }
+  try {
+    await api('/admin/user-op', body);
+    const map = {
+      grantAdmin: '已授予管理员', revokeAdmin: '已撤销管理员',
+      grantJudge: '已指定裁判', revokeJudge: '已撤销裁判',
+      ban: '已封号', unban: '已解封', mute: '已禁言', unmute: '已解禁',
+      resetPass: '学生密码已重置', resetStaffPass: '控制台口令已重置'
+    };
+    tip(map[action] + '：' + username, true);
+    loadUsers();
+  } catch (e) {
+    tip(e.message);
+  }
+}
+
+$('userList').addEventListener('click', (ev) => {
+  const el = ev.target.closest('[data-act]');
+  if (!el) return;
+  op(el.getAttribute('data-act'), el.getAttribute('data-un'), el.getAttribute('data-kind'));
+});
+
+$('chipAdmin').onclick = () => { onlyAdmin = !onlyAdmin; $('chipAdmin').classList.toggle('on', onlyAdmin); renderUsers(); };
+$('chipPlayer').onclick = () => { onlyPlayer = !onlyPlayer; $('chipPlayer').classList.toggle('on', onlyPlayer); renderUsers(); };
+$('chipBanned').onclick = () => { onlyBanned = !onlyBanned; $('chipBanned').classList.toggle('on', onlyBanned); renderUsers(); };
+$('searchInput').addEventListener('input', renderUsers);
+$('suLoginBtn').onclick = doLogin;
+$('suPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+$('refreshBtn').onclick = () => { loadUsers(); loadContest(); };
+$('logoutBtn').onclick = () => {
+  sessionStorage.removeItem('superToken');
+  token = '';
+  location.reload();
+};
+$('watchBtn').onclick = () => window.open('/watch?st=' + encodeURIComponent(token));
+
+$('suPassBtn').onclick = async () => {
+  const t = $('suPassTip');
+  const oldPass = $('suOldPass').value.trim();
+  const newPass = $('suNewPass').value.trim();
+  if (!oldPass || !newPass) {
+    t.textContent = '原口令和新口令都要填';
+    t.className = 'tip bad';
+    return;
+  }
+  $('suPassBtn').disabled = true;
+  try {
+    await api('/super/pass', { oldPass: oldPass, newPass: newPass });
+    t.textContent = '总管口令已修改，下次登录请用新口令';
+    t.className = 'tip good';
+    $('suOldPass').value = '';
+    $('suNewPass').value = '';
+  } catch (e) {
+    t.textContent = e.message;
+    t.className = 'tip bad';
+  } finally {
+    $('suPassBtn').disabled = false;
+  }
+};
+
+if (token) enterPanel();
+</script>
+</body>
+</html>
