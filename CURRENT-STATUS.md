@@ -79,7 +79,8 @@
 
 - 清单 docx 由 `tools/build_docs/checklist.json` + `build_checklist.py` 生成；改清单先改 json，再跑脚本，不手改 docx。
 - 旧口径的 `简历初稿.docx`、`AlgoArena项目技术方案.docx` 本地保留，已在 `.gitignore` 中排除，不进新仓库；后续简历按 AI 全栈主线重新生成。旧生成脚本在仓库外 `C:\Users\Administrator\Doubao\chats\2026-11-17\new-chat\build_docs.py`，改 docx 必须改脚本后重跑，不手改。
-- 详细执行规划（技术栈程度、项目拆解、面试 / 笔试题、过关清单）见 `PLAN-2027暑假实习.md`。
+- 照着做的时间段行动清单与过关验收见 `ACTION-PLAN.md`（不知道现在学什么先看它）；详细执行规划（技术栈程度、项目拆解、面试 / 笔试题、过关清单）见 `PLAN-2027暑假实习.md`。
+- 学长原始材料存档在 `references/`：`Java学习攻略详解.pdf`（13 阶段路线原图）与 `references/images/`（项目清单、参考简历截图）。
 - 简历待补 XX：电话、邮箱、GitHub、项目演示链接、项目起止时间；相关课程以成绩单为准。
 - 简历红线：不主动写挂科 / 补考 / 重修；技术栈与实际掌握一致；未落地的模型 / RAG / 框架只标学习中或规划中；搁置项目未跑通部分不进简历。
 

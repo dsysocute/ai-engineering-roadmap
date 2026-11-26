@@ -239,3 +239,14 @@
 - 入库口径：规划主线文档、清单生成链路、搁置备查的 `sort_platform/` 与 `algoarena-ai-service/` 代码保留；`.venv/`、`.env`、编译产物继续忽略。
 - 排除入库：旧 AlgoArena 口径的 `简历初稿.docx`、`AlgoArena项目技术方案.docx` 本地保留，已加入 `.gitignore`；后续简历按 AI 全栈主线重新生成。
 - 新增或修改的文件：`.gitignore`、`CURRENT-STATUS.md`、`PROGRESS.md`；全新提交 63 个文件。
+
+---
+
+### Today（2026-11-26，第八轮 · 新增简洁行动路线，归档学长原始材料）
+
+- 用户反馈：规划文档太多看不过来，需要一份"照着往下走就行"的行动路线，明确每个时间段学什么、做什么、怎么验收。
+- 完成的功能：新建 `ACTION-PLAN.md`——按阶段 0–9 排时间段，每段列对应学长阶段、学什么、做什么、课程链接、过关验收；学长 13 阶段对照表、全部推荐链接（Java/Python/AI/内功/渠道/面经）、7 张参考截图与 PDF 存档位置作为附录。
+- 归档：学长 `Java学习攻略详解.pdf` 与 7 张 QQ 截图复制到 `references/`（PDF 根目录、图片 `references/images/`），文档内用相对路径引用。
+- 口径保持：主轨 AI 全栈；Java 阶梯作后端骨架；学到第八阶段 Spring Boot + 第九阶段 Redis 可攒 1–2 个项目，冲中大厂再补第十、十一阶段；Agent 不单列岗位方向。
+- 联动更新：README 目录树与首页指向、ROADMAP 顶部交叉引用、CURRENT-STATUS 材料段。
+- 待确认不变：前端框架选型、竞赛报名、考研倾向、数分重修、到岗天数、API 预算、AI Demo 场景与数据集、目标城市。

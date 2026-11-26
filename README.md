@@ -7,12 +7,21 @@
 
 本仓库用于沉淀从 Python/Java/SQL 基础、前端联调到 AI 应用落地的学习过程与项目产出。代码以能跑通、能逐行解释为准，不追求框架堆砌。
 
-> **路线说明（2026-11-26 修订）**：主轨就业 **AI 全栈开发**，备选考研兜底——后端 Python 主线 + Java 二线打底，补前端到能做页面和联调，叠加大模型 / RAG / 工具调用等 AI 应用能力；不单独设 Agent 开发岗位方向。规划从当前学期一直排到毕业，2027 暑假实习只是第一个节点。阶段任务、JD 对标与验收标准详见 [ROADMAP.md](./ROADMAP.md)（唯一维护源）；详细执行规划见 [PLAN-2027暑假实习.md](./PLAN-2027暑假实习.md)；当前进度落点见 [CURRENT-STATUS.md](./CURRENT-STATUS.md)。
+> **路线说明（2026-11-26 修订）**：主轨就业 **AI 全栈开发**，备选考研兜底——后端 Python 主线 + Java 二线打底，补前端到能做页面和联调，叠加大模型 / RAG / 工具调用等 AI 应用能力；不单独设 Agent 开发岗位方向。规划从当前学期一直排到毕业，2027 暑假实习只是第一个节点。**不知道现在学什么就先看 [ACTION-PLAN.md](./ACTION-PLAN.md)**（时间段 → 学什么/做什么/过关验收）；阶段任务、JD 对标与验收标准详见 [ROADMAP.md](./ROADMAP.md)（唯一维护源）；详细执行规划见 [PLAN-2027暑假实习.md](./PLAN-2027暑假实习.md)；当前进度落点见 [CURRENT-STATUS.md](./CURRENT-STATUS.md)。
 
 ## 二、目录结构
 
 ```
 ai-engineering-roadmap/
+├── ACTION-PLAN.md             # 【先看这个】简洁行动路线：时间段 → 学什么/做什么/验收
+├── PLAN-2027暑假实习.md        # 详细规划：技术栈程度、项目拆解、面试/笔试题、JD 对标
+├── ROADMAP.md                 # 总览与红线（唯一维护源）
+├── CURRENT-STATUS.md           # 当前进度落点与交接事实
+│
+├── references/                # 学长路线原始材料存档
+│   ├── Java学习攻略详解.pdf    # 学长 13 阶段 Java 路线原图
+│   └── images/                # 学长发的项目清单/参考简历截图
+│
 ├── daily progress/            # 每日进度记录与未解决困惑台账
 │   ├── PROGRESS.md            # 每日进度日志
 │   ├── OPEN-QUESTIONS.md      # 待验证困惑
