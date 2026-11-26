@@ -230,3 +230,12 @@
 - 文档同步：PLAN-2027暑假实习.md 岗位口径统一为 AI 全栈，附录 A 换成在招全栈 / 后端 JD 样本，Agent 专项 JD 移出；ROADMAP.md 里程碑重排为阶段 0 底座起步 + 电商梳理，阶段 3/4 改为 AI Demo 通用场景，第六节改为搁置备查；README.md、CURRENT-STATUS.md、tools/build_docs/README.md、checklist.json 全部对齐；清单 docx 重生成（108 段落、6 表）。
 - 保留未动：AlgoArena 事实基线与角色口径（HTTP 层 AI 主导、本人配合复现验证，简历写参与 / 配合 / 借助 AI 辅助）；OPEN-QUESTIONS 6 条 M1 困惑标注搁置，重启时再接回。
 - 未完成 / 待确认：前端框架选型（Vue3 / React）、是否报蓝桥杯 / CSP、考研倾向、数分重修时间、2027 暑假到岗天数、模型 API 预算、AI Demo 数据集与场景、目标城市；M1 代码侧待办随搁置暂停。
+
+---
+
+### Today（2026-11-26，第七轮 · GitHub 仓库重置为全新历史）
+
+- 完成的功能：按确认把本地 Git 历史重置并强推覆盖远程 `dsysocute/ai-engineering-roadmap`，远程只保留一条全新提交 `b5ceb36`。
+- 入库口径：规划主线文档、清单生成链路、搁置备查的 `sort_platform/` 与 `algoarena-ai-service/` 代码保留；`.venv/`、`.env`、编译产物继续忽略。
+- 排除入库：旧 AlgoArena 口径的 `简历初稿.docx`、`AlgoArena项目技术方案.docx` 本地保留，已加入 `.gitignore`；后续简历按 AI 全栈主线重新生成。
+- 新增或修改的文件：`.gitignore`、`CURRENT-STATUS.md`、`PROGRESS.md`；全新提交 63 个文件。
