@@ -12,9 +12,9 @@
 
 ## 命名规则
 
-按知识点编号，一个练习一个文件，文件名见名知意：
+一个练习一个文件，文件名见名知意。**Java 文件名必须和 `public class` 类名一致**，类名不能数字开头、不能含 `-`、不建议用中文，所以 Java 不用编号开头：
 
-- Java：`01-变量与数据类型.java`、`02-数组与循环.java`、`03-面向对象入门.java`
+- Java：`BasicSyntax.java`、`ArrayAndLoop.java`、`OopIntro.java`（编号和顺序写在类注释里，或按知识点建子目录）
 - Python：`01-函数与异常.py`、`02-FastAPI-hello.py`
 - SQL：`01-两表连接查询.sql`、`02-聚合与分组.sql`
 

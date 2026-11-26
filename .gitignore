@@ -6,7 +6,8 @@ __pycache__/
 *.lnk
 venv/
 .pytest_cache/
-*.idea/
+.idea/
+*.iml
 ~$*.docx
 # 旧 AlgoArena 口径文档，暂不入库，本地保留
 简历初稿.docx
